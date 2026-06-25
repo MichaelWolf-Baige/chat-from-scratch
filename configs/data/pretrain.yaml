@@ -1,0 +1,46 @@
+# Pretraining Data Configuration
+
+# ── Data Sources ──
+datasets:
+  # Phase 1: Start with clean, pre-processed data
+  - name: fineweb_edu_sample
+    path: data/processed/fineweb_edu_sample/
+    format: jsonl           # Each line: {"text": "..."}
+    language: en
+    weight: 0.6
+    version: "2026-06-25"
+
+  - name: chinese_web_sample
+    path: data/processed/chinese_web_sample/
+    format: jsonl
+    language: zh
+    weight: 0.4
+    version: "2026-06-25"
+
+# ── Preprocessing ──
+preprocessing:
+  max_seq_len: 2048
+  min_text_len: 100      # Minimum characters per document
+  dedup_method: "minhash"  # minhash | exact | none
+  dedup_threshold: 0.8
+  quality_filter: true
+  quality_model: "qwen3-0.6b"  # Model for quality scoring
+  quality_threshold: 0.5
+
+# ── Tokenization ──
+tokenizer:
+  path: tokenizers/phase1_bpe_8k/  # Train via scripts/train_tokenizer.py
+  add_bos: true
+  add_eos: true
+
+# ── Dataset Construction ──
+dataset:
+  type: "map"             # map (pretokenized) | stream (on-the-fly)
+  tokenized_path: data/tokenized/phase1_2B/
+  seq_len: 2048
+  train_split: 0.99
+  eval_split: 0.01
+
+# ── Version Tracking ──
+version: "v1"
+hash_algorithm: "sha256"   # Auto-compute data hash and log to wandb

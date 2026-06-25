@@ -1,0 +1,47 @@
+# Phase 1 Model Configuration (~13.8M params)
+# Goal: Verify the full pipeline correctness + build diagnostic system
+
+# ── Vocabulary ──
+vocab_size: 8192
+pad_token_id: 0
+bos_token_id: 1
+eos_token_id: 2
+
+# ── Dimensions ──
+d_model: 384
+n_layers: 6
+n_heads: 6
+n_kv_heads: 6          # MHA (no GQA in Phase 1)
+d_ff: 1024             # SwiGLU intermediate (8/3*d_model ≈ 1024)
+
+# ── Sequence ──
+max_seq_len: 2048
+
+# ── Position Encoding ──
+rope_theta: 10000.0
+position_embedding_type: "rope"
+
+# ── Regularization ──
+rms_norm_eps: 1.0e-6
+dropout: 0.0
+
+# ── Attention ──
+attention_bias: false
+attention_dropout: 0.0
+use_flash_attention: true
+
+# ── Stability (off for Phase 1, explore in Phase 2) ──
+use_qk_norm: false
+use_z_loss: false
+z_loss_coeff: 0.0001
+
+# ── Initialization ──
+initializer_range: 0.02
+tie_word_embeddings: true
+
+# ── Expected parameter budget ──
+# Embedding:  8192*384 = 3.15M
+# Attention:  6*(4*384^2) = 3.54M
+# FFN:        6*(3*384*1024) = 7.08M
+# RMSNorm:    6*(2*384)+384 ≈ 5K
+# Total:      ~13.8M

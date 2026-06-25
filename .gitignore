@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Model checkpoints & data
+checkpoints/
+data/raw/
+data/processed/
+*.pt
+*.bin
+*.safetensors
+*.pth
+
+# Logs
+logs/
+runs/
+wandb/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Config overrides (keep templates)
+configs/*.local.yaml
