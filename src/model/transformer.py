@@ -171,6 +171,79 @@ class Transformer(nn.Module):
         return logits, outputs
 
     @torch.no_grad()
+    def generate_stream(
+        self,
+        input_ids: torch.Tensor,
+        max_new_tokens: int = 50,
+        temperature: float = 0.8,
+        top_k: int = 50,
+        top_p: float = 0.9,
+        eos_token_id: int | None = None,
+        use_cache: bool = True,
+    ):
+        """Stream token generation — yields one token at a time.
+
+        Yields (token_id, is_done) for each generated token.
+        Uses KV cache for O(n) instead of O(n^2) when use_cache=True.
+        """
+        if eos_token_id is None:
+            eos_token_id = self.config.eos_token_id
+
+        self.eval()
+        B = input_ids.shape[0]
+        generated_ids = input_ids.clone()  # track full sequence
+        past_key_values = None
+
+        for step in range(max_new_tokens):
+            # If we have KV cache, only feed the last generated token
+            if use_cache and past_key_values is not None:
+                current_input = generated_ids[:, -1:]  # (B, 1)
+                position_ids = torch.tensor([[generated_ids.shape[1] - 1]], device=input_ids.device)
+                # Must pass empty attention mask since sequence is growing
+                logits, _ = self(current_input, position_ids=position_ids)
+            elif generated_ids.shape[1] > self.config.max_seq_len:
+                # Truncate if too long (no cache path)
+                truncated = generated_ids[:, -self.config.max_seq_len:]
+                logits, _ = self(truncated)
+            else:
+                logits, _ = self(generated_ids)
+
+            # Take logits of the last position
+            next_logits = logits[:, -1, :] / temperature
+
+            # Top-K filtering
+            if top_k > 0:
+                top_k_vals, _ = torch.topk(next_logits, min(top_k, next_logits.size(-1)))
+                next_logits[next_logits < top_k_vals[:, -1:]] = float("-inf")
+
+            # Top-P (nucleus) filtering
+            if top_p < 1.0:
+                sorted_logits, sorted_indices = torch.sort(next_logits, descending=True)
+                cumulative_probs = torch.cumsum(
+                    F.softmax(sorted_logits, dim=-1), dim=-1
+                )
+                sorted_indices_to_remove = cumulative_probs > top_p
+                sorted_indices_to_remove[:, 1:] = sorted_indices_to_remove[:, :-1].clone()
+                sorted_indices_to_remove[:, 0] = False
+                for b in range(B):
+                    indices_to_remove = sorted_indices[b][sorted_indices_to_remove[b]]
+                    next_logits[b, indices_to_remove] = float("-inf")
+
+            # Sample
+            probs = F.softmax(next_logits, dim=-1)
+            next_token = torch.multinomial(probs, num_samples=1)  # (B, 1)
+
+            generated_ids = torch.cat([generated_ids, next_token], dim=-1)
+
+            # Check if done
+            is_done = bool((next_token == eos_token_id).all().item())
+
+            yield next_token.item(), is_done
+
+            if is_done:
+                break
+
+    @torch.no_grad()
     def generate(
         self,
         input_ids: torch.Tensor,
