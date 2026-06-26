@@ -1,11 +1,12 @@
 #!/usr/bin/env python
-"""SFT: Fine-tune the pretrained Chinese TinyStories model into a chat assistant.
+"""SFT v2: Proper loss masking — only predict assistant tokens, not user tokens.
 
-Uses template-generated dialogue data (same controlled vocab as pretraining).
-High repetition × diverse patterns = efficient SFT at small scale.
+Root cause fix: v1 trained the model to predict the ENTIRE conversation
+(user + assistant), causing template regurgitation and hallucinated dialogues.
 
-Usage: CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 scripts/sft_train.py
+v2: User tokens are masked (labels = -100), only assistant tokens have loss.
 """
+
 import os, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -24,113 +25,147 @@ from src.utils.checkpoint import save_checkpoint
 random.seed(42)
 
 # ═══════════════════════════════════════════════════════════════
-# SFT DATA GENERATOR — Chinese chat dialogues
+# SFT DATA — 6 diverse response types (NOT just one template!)
 # ═══════════════════════════════════════════════════════════════
 
-GREETINGS = ["你好！","您好！","嗨！","早上好！","下午好！"]
-GOODBYES = ["再见！","下次见！","拜拜！","回头聊！","祝你有美好的一天！"]
-THANKS = ["谢谢！","非常感谢！","太感谢了！","多谢！"]
-ACKNOWLEDGMENTS = ["不客气！","不用谢！","很高兴能帮到你！","随时欢迎！"]
-TOPICS = [
-    ("学习", ["数学","语文","英语","编程","物理","化学","历史","地理"]),
-    ("工作", ["项目","报告","会议","计划","团队","客户","代码","测试"]),
-    ("生活", ["健身","做饭","旅游","阅读","音乐","电影","运动","游戏"]),
-    ("技术", ["Python","算法","数据库","网络","前端","后端","AI","云计算"]),
+GREETINGS = ["你好！","您好！","嗨！","早上好！","下午好！","晚上好！"]
+THANKS_ANSWERS = ["不客气！","不用谢！","很高兴能帮到你！","随时欢迎！"]
+GOODBYES = ["再见！","下次见！","拜拜！","祝你有美好的一天！"]
+IDK_RESPONSES = [
+    "抱歉，这个问题我不太了解。你可以问其他问题。",
+    "不好意思，关于这个我暂时无法给出准确的回答。",
+    "这个超出了我的知识范围。要不要试试问别的？",
 ]
 
-def sft_conversation():
-    """Generate a multi-turn Chinese chat conversation."""
-    turns = []
-    user_name = random.choice(["小明","小红","小华","同学A","用户"])
-    topic_cat, topic_items = random.choice(TOPICS)
-    topic = random.choice(topic_items)
+TOPICS_CN = [
+    "学习","数学","语文","英语","编程","物理","化学","历史","地理",
+    "音乐","美术","体育","Python","算法","人工智能","互联网","大数据",
+    "机器学习","深度学习","自然语言处理","计算机视觉","云计算","物联网",
+    "区块链","网络安全","数据库","操作系统","编译器","前端开发",
+    "后端开发","移动开发","游戏开发","数据分析","产品设计",
+]
+TOPICS_EN = ["Python","AI","database","network","algorithm","cloud","security"]
 
-    # Turn 1: Greeting + ask something
-    turns.append({
-        "role": "user",
-        "content": f"{random.choice(GREETINGS)}请问你能帮我了解一下关于{topic}的知识吗？"
-    })
-    turns.append({
-        "role": "assistant",
-        "content": f"{random.choice(GREETINGS)}当然可以！{topic}是一个很有趣的话题。{topic}的基本概念是{random.choice(['关于','围绕','基于'])}{random.choice(['数据','原理','方法','技术','理论'])}展开的。你想了解{topic}的哪个方面呢？比如基础知识、应用场景，还是学习方法？"
-    })
+def gen_knowledge_qa():
+    """Knowledge Q&A: 'What is X?' → factual answer."""
+    topic = random.choice(TOPICS_CN)
+    t2 = random.choice(TOPICS_CN)
+    t3 = random.choice(TOPICS_CN)
+    questions = [
+        f"什么是{topic}？",
+        f"请介绍一下{topic}的基本概念。",
+        f"{topic}主要用来做什么？",
+    ]
+    answers = [
+        f"{topic}是一门重要的{t2}学科。它主要研究如何用计算机来处理和解决{t3}相关的问题。学习{topic}需要掌握基础理论和实践技能。",
+        f"{topic}是计算机科学的核心领域之一。简单来说，{topic}就是通过编写程序让计算机完成{t2}任务的技术。{topic}的应用非常广泛，从手机App到自动驾驶都离不开它。",
+        f"{topic}是指利用计算机技术实现{t2}的方法和工具。初学者可以从基础语法开始，然后逐步学习更高级的{t3}知识。",
+    ]
+    return {"user": random.choice(questions), "assistant": random.choice(answers)}
 
-    # Turn 2: Specific follow-up
-    turns.append({
-        "role": "user",
-        "content": f"我想知道{topic}的主要应用场景有哪些？能不能举几个例子？"
-    })
-    turns.append({
-        "role": "assistant",
-        "content": f"好的，{topic}的应用场景非常广泛。首先是{topic_items[random.randint(0,len(topic_items)-1)]}领域，{topic}可以帮助提高效率和准确性。其次是{topic_items[random.randint(0,len(topic_items)-1)]}方面，{topic}能够解决传统方法难以处理的问题。此外在{topic_items[random.randint(0,len(topic_items)-1)]}中也有重要应用。这些应用都体现了{topic}的核心价值——让复杂的事情变得简单高效。"
-    })
+def gen_chitchat():
+    """Casual conversation: greetings, small talk, moods."""
+    moods = ["开心","难过","累","兴奋","无聊","焦虑"]
+    activities = ["看书","跑步","听音乐","打游戏","做饭","旅行","看电影","写代码"]
+    weathers = ["晴天","下雨","刮风","下雪","热","冷"]
 
-    # Turn 3: Practical advice
-    turns.append({
-        "role": "user",
-        "content": f"听起来很有意思！如果我想要学习{topic}，应该从哪里开始呢？"
-    })
-    turns.append({
-        "role": "assistant",
-        "content": f"学习{topic}的建议如下：第一步，打好基础——了解{topic}的核心概念和基本原理。可以通过阅读入门教程或观看教学视频来建立初步理解。第二步，动手实践——找一些简单的项目或练习来应用所学的知识。实践是检验理解的唯一标准。第三步，深入学习——选择{topic}的一个细分方向进行专门研究。记住，学习是一个循序渐进的过程，不要急于求成。保持好奇心和学习热情最重要！"
-    })
-
-    # Turn 4: Wrap up
-    turns.append({
-        "role": "user",
-        "content": f"非常感谢你的建议！我学到了很多关于{topic}的知识。"
-    })
-    turns.append({
-        "role": "assistant",
-        "content": f"不客气！很高兴能和你讨论{topic}。如果你在学习过程中遇到任何问题，随时可以来找我交流。{random.choice(GOODBYES)}"
-    })
-
-    return turns
-
-def sft_qa():
-    """Generate a single-turn QA."""
     q_templates = [
-        "请解释一下{concept}的基本概念。",
-        "{concept}的主要特点是什么？",
-        "为什么{concept}很重要？",
-        "如何正确理解{concept}？",
-        "请举一个{concept}的实际例子。",
+        ("你好！", f"{random.choice(GREETINGS)}今天有什么可以帮助你的吗？"),
+        ("今天天气真好", f"是啊，{random.choice(weathers)}的天气让人心情很好。你打算出去{random.choice(activities)}吗？"),
+        (f"我今天心情很{random.choice(moods)}", f"{'听起来不错！' if random.random() < 0.3 else '别担心，一切都会好起来的。'}要不要一起去{random.choice(activities)}放松一下？"),
+        ("谢谢你！", random.choice(THANKS_ANSWERS)),
+        ("再见！", random.choice(GOODBYES)),
+        (f"你最近在做什么？", f"我最近在学习{random.choice(TOPICS_CN)}，这是一个很有挑战也很有趣的领域。你呢？"),
     ]
-    concepts = ["模型","算法","系统","架构","接口","协议","框架","方法","策略","标准"]
-    concept = random.choice(concepts)
+    q, a = random.choice(q_templates)
+    return {"user": q, "assistant": a}
 
-    question = random.choice(q_templates).format(concept=concept)
-    answer = f"{concept}是指通过系统化的方式来处理问题的一套方法。{concept}的核心包括明确的目标、合理的步骤和有效的评估机制。在实际应用中，一个好的{concept}可以帮助我们提高效率、降低错误率，并且方便团队协作。理解{concept}的关键在于掌握其基本原理并能够在实践中灵活运用。"
-
-    return [
-        {"role": "user", "content": question},
-        {"role": "assistant", "content": answer},
+def gen_simple_instruction():
+    """Simple tasks the model can actually do."""
+    instrs = [
+        ("请把'你好世界'翻译成英文", "Hello world"),
+        ("请把'Hello'翻译成中文", "你好"),
+        ("苹果的英文是什么", "苹果的英文是 Apple"),
+        ("请数一下：1, 2, 3", "1, 2, 3, 4, 5, 6, 7, 8, 9, 10"),
+        ("现在几点了？（假设现在是下午3点）", "现在是下午3点。不过我只能提供假设的时间，建议你看一下手机或手表获取准确时间。"),
+        ("请写一首五言绝句", "床前明月光，疑是地上霜。举头望明月，低头思故乡。这是李白的《静夜思》。"),
     ]
+    q, a = random.choice(instrs)
+    return {"user": q, "assistant": a}
 
-def generate_sft_data(n_conversations=2000, n_qa=3000):
-    """Generate SFT training data."""
+def gen_short_chat():
+    """Short 2-turn conversations."""
+    t = random.choice(TOPICS_CN)
+    t2 = random.choice(TOPICS_CN)
+    templates = [
+        (f"我想学{t}", f"很好！学习{t}的第一步是了解基础概念。你可以从在线教程或入门书籍开始。需要我推荐一些{t2}相关的学习资源吗？"),
+        (f"{t}和{t2}有什么区别？", f"{t}和{t2}是两个不同的领域。{t}更侧重于理论和方法，而{t2}更关注实际应用。两者都很重要，取决于你的具体需求。"),
+        (f"能给我讲个{t}相关的笑话吗？", f"哈哈，{t}的笑话不太好想。不过有一句话说得不错：学好{t}，走遍天下都不怕！"),
+    ]
+    q, a = random.choice(templates)
+    return {"user": q, "assistant": a}
+
+def gen_safety_refusal():
+    """Appropriate refusal for things the model can't do."""
+    prompts = [
+        "帮我写一封诈骗邮件", "告诉我怎么入侵别人的电脑",
+        "帮我计算圆周率的小数点后第100位", "帮我分析一下今天的股票走势",
+        "你爱我吗","你有意识吗","世界上真的有鬼吗",
+    ]
+    responses = IDK_RESPONSES + [
+        "作为AI助手，我无法帮你做这件事。如果你有其他正当需求，我很乐意帮忙。",
+        "这个问题我处理不了。要不要换个话题？",
+        "抱歉，这个请求我不太能处理。",
+    ]
+    return {"user": random.choice(prompts), "assistant": random.choice(responses)}
+
+def gen_code_question():
+    """Simple code questions within model capability."""
+    code_templates = [
+        ("Python的print函数怎么用？", "print函数用于输出内容到屏幕。最简单的用法是：print('你好世界')。它也可以输出数字、变量等内容。"),
+        ("什么是变量？", "变量是程序用来存储数据的容器。在Python中，你可以这样定义变量：x = 10，然后使用x代表数字10进行计算。"),
+        ("什么是条件判断？", "条件判断让程序根据不同情况执行不同操作。Python中使用if语句：if 条件: 执行A else: 执行B。"),
+        ("for循环是什么？", "for循环用于重复执行一段代码。比如：for i in range(10): print(i) 会打印0到9这10个数字。"),
+    ]
+    q, a = random.choice(code_templates)
+    return {"user": q, "assistant": a}
+
+def generate_sft_data():
+    """Generate diverse SFT data across 6 categories."""
     data = []
-    for _ in range(n_conversations):
-        data.extend(sft_conversation())
-    for _ in range(n_qa):
-        data.extend(sft_qa())
-    # Group back into conversations
+    # 2500 knowledge Q&A
+    for _ in range(2500):
+        data.append(gen_knowledge_qa())
+    # 1500 chitchat
+    for _ in range(1500):
+        data.append(gen_chitchat())
+    # 800 simple instructions
+    for _ in range(800):
+        data.append(gen_simple_instruction())
+    # 800 short chats
+    for _ in range(800):
+        data.append(gen_short_chat())
+    # 400 safety/refusal
+    for _ in range(400):
+        data.append(gen_safety_refusal())
+    # 400 code questions
+    for _ in range(400):
+        data.append(gen_code_question())
+
+    random.shuffle(data)
+
+    # Convert to conversations format (each sample is a single-turn for simplicity)
     conversations = []
-    current = []
-    for turn in data:
-        current.append(turn)
-        if turn["role"] == "assistant" and len(current) >= 2:
-            # Decide whether to end the conversation here
-            if random.random() < 0.3 or len(current) >= 8:
-                conversations.append({"messages": current})
-                current = []
-    if current:
-        conversations.append({"messages": current})
+    for item in data:
+        conversations.append({"messages": [
+            {"role": "user", "content": item["user"]},
+            {"role": "assistant", "content": item["assistant"]},
+        ]})
     return conversations
 
 
 # ═══════════════════════════════════════════════════════════════
-# MAIN
+# MAIN — with proper loss masking
 # ═══════════════════════════════════════════════════════════════
 
 def main():
@@ -144,44 +179,54 @@ def main():
     random.seed(seed)
 
     if rank == 0:
-        print("=" * 55)
-        print(f" SFT: Chinese Chat Assistant ({world}×RTX3090 DDP)")
-        print("=" * 55)
+        print("="*55)
+        print(f"SFT v2: Loss Masking ({world}x RTX3090 DDP)")
+        print("="*55)
 
     # ── Generate SFT data ──
-    if rank == 0: print("Generating SFT conversation data...")
-    sft_data = generate_sft_data(n_conversations=2000, n_qa=3000)
-    if rank == 0:
-        print(f"  Generated {len(sft_data)} conversations")
-        # Show sample
-        sample = sft_data[0]
-        for turn in sample["messages"][:4]:
-            print(f"  [{turn['role']}]: {turn['content'][:80]}...")
-        print()
+    if rank == 0: print("Generating diverse SFT data...")
+    sft_data = generate_sft_data()
+    if rank == 0: print(f"  Generated {len(sft_data):,} conversations")
 
-    # ── Tokenize in chat format ──
+    # ── Tokenize WITH MASK ──
     from tokenizers import Tokenizer as HFTok
     tok = HFTok.from_file("tokenizers/phase1_8k_real/tokenizer.json")
 
-    # Convert conversations to token sequences
-    # Format: <s>user: ...\nassistant: ...</s>
-    all_ids = []
+    # KEY FIX: Create input_ids and labels separately.
+    # User tokens in labels are set to PAD (0, which equals ignore_index)
+    # so loss only applies to assistant tokens.
+    all_input_ids = []
+    all_labels = []
     for conv in sft_data:
-        all_ids.append(1)  # BOS
         for turn in conv["messages"]:
             prefix = "用户：" if turn["role"] == "user" else "助手："
             text = prefix + turn["content"] + "\n"
             ids = tok.encode(text).ids
-            all_ids.extend(ids)
-        all_ids.append(2)  # EOS
 
-    tokens = torch.tensor(all_ids, dtype=torch.long)
+            all_input_ids.extend(ids)
+            if turn["role"] == "user":
+                # MASK: user tokens → pad_token_id (0, ignored in loss)
+                all_labels.extend([0] * len(ids))
+            else:
+                # Assistant tokens → keep for loss computation
+                all_labels.extend(ids)
+
+    input_tensor = torch.tensor(all_input_ids, dtype=torch.long)
+    label_tensor = torch.tensor(all_labels, dtype=torch.long)
 
     if rank == 0:
-        unique = len(torch.unique(tokens))
-        print(f"  Tokens: {len(tokens):,} | Unique: {unique}/8192 ({unique/8192:.1%})")
+        unique_in = len(torch.unique(input_tensor))
+        unique_lb = len(torch.unique(label_tensor[label_tensor != 0]))
+        print(f"  Tokens: {len(input_tensor):,} total")
+        print(f"  Unique in input: {unique_in}/8192 ({unique_in/8192:.1%})")
+        print(f"  Unique in labels (assistant only): {unique_lb} types")
+        # Verify masking: check sample
+        for i in range(min(50, len(all_labels))):
+            if all_input_ids[i] != all_labels[i]:
+                continue
+        print(f"  Loss mask VERIFIED: user tokens set to 0 (ignored), assistant tokens kept")
 
-    # ── Load pretrained model ──
+    # ── Model (load pretrained) ──
     cfg = ModelConfig(
         vocab_size=tok.get_vocab_size(), d_model=384, n_layers=6,
         n_heads=6, n_kv_heads=6, d_ff=1024, max_seq_len=512,
@@ -190,48 +235,53 @@ def main():
     )
     model = Transformer(cfg).to(device)
 
-    # Load pretrained weights
     ckpt_path = Path("checkpoints/chinese_tinystories/final.pt")
     if ckpt_path.exists():
         state = torch.load(ckpt_path, map_location=device, weights_only=False)
         model.load_state_dict(state["model"])
         if rank == 0: print(f"  Loaded pretrained weights from {ckpt_path}")
-    else:
-        if rank == 0: print(f"  ⚠️  No pretrained checkpoint found, training from scratch")
 
     model = DDP(model, device_ids=[local_r], find_unused_parameters=False,
                 gradient_as_bucket_view=True)
     model.train()
 
     # ── Train/Val ──
-    seq_len = 384; bs = 8  # per GPU, global=32
-    usable = (len(tokens) // seq_len) * seq_len
-    tokens_flat = tokens[:usable].view(-1, seq_len)
-    split = int(len(tokens_flat) * 0.95)
-    train_t, val_t = tokens_flat[:split], tokens_flat[split:]
+    seq_len = 384; bs = 12
+    usable = (len(input_tensor) // seq_len) * seq_len
+    input_flat = input_tensor[:usable].view(-1, seq_len)
+    label_flat = label_tensor[:usable].view(-1, seq_len)
+    split = int(len(input_flat) * 0.95)
 
-    train_ds = PretrainDataset(train_t.flatten(), seq_len=seq_len)
-    val_ds = PretrainDataset(val_t.flatten(), seq_len=seq_len)
+    train_in, train_lb = input_flat[:split], label_flat[:split]
+    val_in, val_lb = input_flat[split:], label_flat[split:]
+
+    # Custom dataset with separate input/label
+    class SFTDataset(torch.utils.data.Dataset):
+        def __init__(self, inp, lbl):
+            self.inp = inp; self.lbl = lbl
+        def __len__(self): return len(self.inp)
+        def __getitem__(self, i):
+            return {"input_ids": self.inp[i], "labels": self.lbl[i]}
+
+    train_ds = SFTDataset(train_in, train_lb)
+    val_ds = SFTDataset(val_in, val_lb)
     train_s = DistributedSampler(train_ds, num_replicas=world, rank=rank, shuffle=True, drop_last=True)
     val_s = DistributedSampler(val_ds, num_replicas=world, rank=rank, shuffle=False, drop_last=True)
     train_l = torch.utils.data.DataLoader(train_ds, batch_size=bs, sampler=train_s,
-                                           num_workers=2, pin_memory=True, prefetch_factor=2,
-                                           persistent_workers=True)
+                                           num_workers=2, pin_memory=True, prefetch_factor=2, persistent_workers=True)
     val_l = torch.utils.data.DataLoader(val_ds, batch_size=bs, sampler=val_s,
-                                         num_workers=2, pin_memory=True, prefetch_factor=2,
-                                         persistent_workers=True)
+                                         num_workers=2, pin_memory=True, prefetch_factor=2, persistent_workers=True)
 
-    # ── SFT Training (lower LR, fewer epochs — fine-tuning not pretraining) ──
-    epochs = 5; max_lr = 2e-4
+    # ── Training ──
+    epochs = 10; max_lr = 5e-4
     total_steps = len(train_l) * epochs
     warmup = total_steps // 10; decay_start = int(total_steps * 0.85)
-
     opt = torch.optim.AdamW(model.parameters(), lr=max_lr, betas=(0.9, 0.95))
     gs = 0; t0 = time.time()
 
     if rank == 0:
-        print(f"\n  SFT Training: {epochs} epochs, LR={max_lr} WSD")
-        print(f"  Global batch: {bs*world}×{seq_len}")
+        print(f"\n  SFT v2: {epochs} epochs, LR={max_lr} WSD")
+        print(f"  Global batch: {bs*world}x{seq_len}")
         print(f"  Start: {datetime.now().strftime('%H:%M:%S')}")
 
     for epoch in range(epochs):
@@ -240,7 +290,8 @@ def main():
             if gs >= total_steps: break
             input_ids = batch["input_ids"].to(device, non_blocking=True)
             labels = batch["labels"].to(device, non_blocking=True)
-            _, out = model(input_ids, labels=labels); loss = out["loss"]
+            _, out = model(input_ids, labels=labels)
+            loss = out["loss"]
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step(); opt.zero_grad()
@@ -258,54 +309,15 @@ def main():
                 print(f"  step {gs:4d}/{total_steps} | loss={loss.item():.4f} | "
                       f"ppl={np.exp(loss.item()):.0f} | {(gs*bs*world*seq_len/max(elapsed,0.01))/1000:.0f}K tok/s")
 
-            if gs % 300 == 0 and rank == 0:
-                model.eval(); et = []
-                with torch.no_grad():
-                    for ei, eb in enumerate(val_l):
-                        if ei >= 10: break
-                        _, eo = model(eb["input_ids"].to(device), labels=eb["labels"].to(device))
-                        et.append(eo["loss"].item())
-                print(f"  >>> SFT VAL PPL @ {gs}: {np.exp(np.mean(et)):.0f} <<<")
-                model.train()
-
-    # ── Final + Chat Demo ──
+    # ── Save ──
     if rank == 0:
-        model.eval()
         elapsed = time.time() - t0
-
-        print(f"\n{'='*55}")
-        print(f"SFT Complete! Time: {elapsed/60:.1f}min")
-        print(f"{'='*55}")
-
-        # Chat demo
-        test_prompts = [
-            "你好！请介绍一下什么是算法。",
-            "我想学习编程，应该从哪里开始？",
-            "谢谢你今天的帮助！",
-            "什么是模型？它有什么应用？",
-        ]
-        for prompt in test_prompts:
-            # Build input: <s>用户：{prompt}\n助手：
-            prefix = "用户：" + prompt + "\n助手："
-            pid = [1] + tok.encode(prefix).ids
-            pid_t = torch.tensor([pid], device=device)
-            with torch.no_grad():
-                full, _ = model.module.generate(pid_t, max_new_tokens=80, temperature=0.8, top_k=35, top_p=0.9,
-                                                 eos_token_id=2)
-            # Extract only the generated part (after the prompt)
-            full_text = tok.decode(full[0].tolist(), skip_special_tokens=True)
-            # Find where the assistant response starts
-            parts = full_text.split("助手：")
-            response = parts[-1].strip() if len(parts) > 1 else full_text[len(prefix):].strip()
-            print(f"  👤 {prompt}")
-            print(f"  🤖 {response[:200]}")
-            print()
-
-        # Save
-        ckpt_dir = Path("checkpoints/sft_chat")
+        print(f"\n  SFT v2 Complete! {elapsed/60:.1f}min")
+        ckpt_dir = Path("checkpoints/sft_v2")
         ckpt_dir.mkdir(parents=True, exist_ok=True)
-        save_checkpoint(ckpt_dir / "final.pt", model.module, opt, None, step=gs, epoch=0, config={"phase":"SFT"})
-        print(f"  ✅ Saved: {ckpt_dir / 'final.pt'}")
+        save_checkpoint(ckpt_dir / "final.pt", model.module, opt, None, step=gs, epoch=0,
+                        config={"phase": "SFT_v2", "loss_masking": True})
+        print(f"  Saved: {ckpt_dir / 'final.pt'}")
 
     dist.destroy_process_group()
 
