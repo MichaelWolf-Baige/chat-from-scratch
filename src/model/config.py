@@ -203,3 +203,23 @@ class ModelConfig:
             dropout=0.0,
             use_flash_attention=True,
         )
+
+    @classmethod
+    def phase4_100m(cls) -> "ModelConfig":
+        """~99M params — deep-narrow, GQA 2:1, QK-Norm, large RoPE theta."""
+        return cls(
+            vocab_size=8192,
+            d_model=512,
+            n_layers=24,
+            n_heads=8,
+            n_kv_heads=4,        # GQA (2:1)
+            d_ff=2048,            # SwiGLU intermediate
+            max_seq_len=2048,
+            rope_theta=100000.0,  # support long context
+            dropout=0.0,
+            use_flash_attention=True,
+            use_qk_norm=True,     # MiniMind/DeepSeek stability
+            tie_word_embeddings=True,
+            rms_norm_eps=1e-6,
+            initializer_range=0.02,
+        )
