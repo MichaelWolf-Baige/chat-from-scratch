@@ -31,11 +31,11 @@ data/processed/
 *.safetensors
 *.pth
 
-# Logs
-logs/
+# Logs (track project logs, ignore runtime output)
+logs/*.log
+logs/*.out
 runs/
 wandb/
-*.log
 
 # OS
 .DS_Store
