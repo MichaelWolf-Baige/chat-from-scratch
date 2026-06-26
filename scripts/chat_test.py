@@ -8,7 +8,6 @@ from tokenizers import Tokenizer
 from src.model.config import ModelConfig
 from src.model.transformer import Transformer
 
-# Auto-detect paths
 TOKENIZER_PATH = "saved_models/tokenizers/phase1_8k_real_tokenizer.json"
 CHECKPOINT_PATH = "saved_models/sft_chat_final.pt"
 
@@ -29,16 +28,16 @@ nparam = sum(pp.numel() for pp in model.parameters())
 print(f"Loaded: SFT chat model, {nparam:,} params")
 
 print("=" * 40)
-print("Chat from Scratch — 14M 中文对话助手")
-print("输入 'quit' 或 'exit' 退出")
+print("Chat from Scratch - 14M Chinese Chat")
+print("Type 'quit' to exit")
 print("=" * 40)
 
 while True:
     try:
-        user_input = input("\n👤 你: ")
+        user_input = input("\nYou: ")
     except (EOFError, KeyboardInterrupt):
         break
-    if user_input.lower() in ("quit", "exit", "退出", "q"):
+    if user_input.lower() in ("quit", "exit", "q"):
         break
     if not user_input.strip():
         continue
@@ -51,4 +50,4 @@ while True:
                                   top_k=35, top_p=0.9, eos_token_id=2)
     result = tok.decode(full[0].tolist(), skip_special_tokens=True)
     response = result.split("助手：")[-1].strip()
-    print(f"🤖 助手: {response}")
+    print(f"Bot: {response}")
