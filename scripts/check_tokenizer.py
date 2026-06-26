@@ -16,12 +16,13 @@ ours = Tokenizer.from_file("tokenizers/phase1_8k_real/tokenizer.json")
 print(f"Our tokenizer: vocab={ours.get_vocab_size()}")
 
 try:
+    os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
     from transformers import AutoTokenizer
     qwen_tok = AutoTokenizer.from_pretrained("Qwen/Qwen2-0.5B", trust_remote_code=True)
     print(f"Qwen2-0.5B tokenizer: vocab={qwen_tok.vocab_size}")
     HAS_QWEN = True
 except Exception as e:
-    print(f"Qwen2 tokenizer unavailable: {e}")
+    print(f"Qwen2 tokenizer unavailable (network issue): {type(e).__name__}")
     HAS_QWEN = False
 
 # ── Test texts ──

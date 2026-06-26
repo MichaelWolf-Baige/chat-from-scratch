@@ -46,22 +46,49 @@ TOPICS_CN = [
 ]
 TOPICS_EN = ["Python","AI","database","network","algorithm","cloud","security"]
 
+# Fixed knowledge base — accurate Q&A pairs for common topics
+KNOWLEDGE_DB = {
+    "Python": "Python是一种广泛使用的高级编程语言，由Guido van Rossum于1991年创建。它以简洁易读的语法著称，适合初学者学习。Python广泛应用于数据分析、人工智能、Web开发和自动化脚本。",
+    "算法": "算法是解决特定问题的一系列明确步骤。常见的算法包括排序算法（如冒泡排序、快速排序）、搜索算法（如二分查找）和图算法（如最短路径）。好的算法应该高效、正确且易于理解。",
+    "机器学习": "机器学习是人工智能的一个分支，让计算机通过数据学习规律，而不是显式编程。主要分为监督学习、无监督学习和强化学习。常见应用包括图像识别、语音识别和推荐系统。",
+    "深度学习": "深度学习使用多层神经网络从大量数据中自动学习特征。它推动了近年来AI的突破，包括GPT等大语言模型、自动驾驶和医疗影像诊断。",
+    "人工智能": "人工智能是让机器模拟人类智能的技术。它包括机器学习、自然语言处理、计算机视觉等子领域。AI技术已广泛应用于语音助手、搜索引擎、智能推荐等领域。",
+    "数据库": "数据库是用于存储和管理数据的系统。常见类型有关系型数据库（如MySQL、PostgreSQL）和非关系型数据库（如MongoDB、Redis）。数据库使用SQL等语言进行数据查询和操作。",
+    "计算机网络": "计算机网络是多台计算机相互连接形成的通信系统。互联网是全球最大的计算机网络。核心概念包括IP地址、TCP/IP协议、路由和DNS域名解析。",
+    "操作系统": "操作系统是管理计算机硬件和软件资源的系统软件，如Windows、Linux和macOS。它提供文件管理、进程调度和内存管理等功能。",
+    "云计算": "云计算通过互联网提供计算资源（如服务器、存储、数据库），用户按需付费使用。主要服务模式包括IaaS、PaaS和SaaS。",
+    "Git": "Git是目前最流行的分布式版本控制系统，由Linus Torvalds创建。它用于跟踪代码变更、协作开发和版本管理。常用命令包括git add、git commit、git push和git pull。",
+    "Linux": "Linux是一种开源的类Unix操作系统。它广泛用于服务器、嵌入式系统和开发环境。Linux内核由Linus Torvalds于1991年创建，现在由全球开发者社区共同维护。",
+    "数学": "数学是研究数量、结构、变化和空间等概念的学科。它是科学和工程的基础工具。主要分支包括代数、几何、微积分、概率论和统计学。",
+    "物理": "物理学是研究物质、能量及其相互作用的自然科学。经典物理涵盖力学、热学、电磁学等，现代物理包括量子力学和相对论。",
+    "化学": "化学是研究物质的组成、结构、性质及其变化的科学。日常生活中烹饪、洗涤和药物都涉及化学反应。",
+    "历史": "历史是研究人类社会发展过程的学科。学习历史有助于理解现在、预测未来，从过去的经验中汲取智慧。",
+    "英语": "英语是全球使用最广泛的国际语言之一。掌握英语可以帮助阅读技术文档、参与国际交流和获取更广泛的信息。",
+    "互联网": "互联网是全球最大的计算机网络系统，连接了世界各地的数十亿设备。它的核心协议是TCP/IP，主要服务包括万维网、电子邮件和即时通讯。自1990年代以来，互联网深刻改变了人类的生活方式。",
+    "编程": "编程是用编程语言编写计算机指令的过程。学习编程可以培养逻辑思维和问题解决能力。初学者建议从Python或JavaScript等简单易学的语言开始。",
+    "密码学": "密码学是研究如何安全传递信息的科学。它包括加密（将信息转换为密文）和解密（将密文还原）。现代密码学广泛应用于网络支付、通信安全和数字签名。",
+    "虚拟现实": "虚拟现实是用计算机模拟三维环境的技术，用户可以通过头戴设备沉浸式体验虚拟世界。VR应用于游戏、教育、医疗培训等多个领域。",
+}
+
+TOPIC_FALLBACK = ["数学","物理","化学","历史","英语","编程","Python","互联网","人工智能","算法","机器学习","数据库","Linux"]
+
 def gen_knowledge_qa():
-    """Knowledge Q&A: 'What is X?' → factual answer."""
-    topic = random.choice(TOPICS_CN)
-    t2 = random.choice(TOPICS_CN)
-    t3 = random.choice(TOPICS_CN)
-    questions = [
-        f"什么是{topic}？",
-        f"请介绍一下{topic}的基本概念。",
-        f"{topic}主要用来做什么？",
-    ]
-    answers = [
-        f"{topic}是一门重要的{t2}学科。它主要研究如何用计算机来处理和解决{t3}相关的问题。学习{topic}需要掌握基础理论和实践技能。",
-        f"{topic}是计算机科学的核心领域之一。简单来说，{topic}就是通过编写程序让计算机完成{t2}任务的技术。{topic}的应用非常广泛，从手机App到自动驾驶都离不开它。",
-        f"{topic}是指利用计算机技术实现{t2}的方法和工具。初学者可以从基础语法开始，然后逐步学习更高级的{t3}知识。",
-    ]
-    return {"user": random.choice(questions), "assistant": random.choice(answers)}
+    """Knowledge Q&A — use fixed accurate facts when available, fallback to template."""
+    if random.random() < 0.7 and KNOWLEDGE_DB:
+        # Use known fact
+        topic = random.choice(list(KNOWLEDGE_DB.keys()))
+        fact = KNOWLEDGE_DB[topic]
+        questions = [
+            f"什么是{topic}？", f"请介绍一下{topic}", f"{topic}是什么？",
+            f"能讲讲{topic}吗？", f"{topic}是做什么的？",
+        ]
+        return {"user": random.choice(questions), "assistant": fact}
+    else:
+        # Generic template for uncovered topics
+        t = random.choice(TOPIC_FALLBACK)
+        t2 = random.choice(TOPIC_FALLBACK)
+        return {"user": f"什么是{t}？",
+                "assistant": f"{t}是一个重要的{t2}相关领域。学习{t}需要从基础概念入手，逐步深入。如果你对{t}的具体内容感兴趣，我可以进一步介绍。"}
 
 def gen_chitchat():
     """Casual conversation: greetings, small talk, moods."""
