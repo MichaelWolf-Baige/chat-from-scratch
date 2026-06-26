@@ -48,10 +48,11 @@ def save_checkpoint(
     }
 
     # Save scheduler state if it has state dict
-    if hasattr(scheduler, "state_dict"):
-        checkpoint["scheduler"] = scheduler.state_dict()
-    else:
-        checkpoint["scheduler_step"] = scheduler.__dict__.get("_step", step)
+    if scheduler is not None:
+        if hasattr(scheduler, "state_dict"):
+            checkpoint["scheduler"] = scheduler.state_dict()
+        else:
+            checkpoint["scheduler_step"] = scheduler.__dict__.get("_step", step)
 
     torch.save(checkpoint, path)
 
