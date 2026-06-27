@@ -134,8 +134,8 @@ class MegaTemplateEngine:
         tmpl = self.rng.choice([
             f"在{w}的一天，{p}带着{o}来到{pl}。{p}看到一只{a}正在{ac}，感到非常{em}。{p}从包里拿出{f}和大家分享，然后一起{ac}直到傍晚。回家的路上，{p}心想今天真是美好的一天。",
             f"{p}从小就喜欢在{pl}里{ac}。每天放学后，{p}都会和朋友们一起在这里练习，从最初的笨拙到现在的熟练，付出了很多努力。{p}的老师说：'只要坚持，没有什么是学不会的。'",
-            f"周末的早晨，{p}决定去{pl}探险。背上{o}，带上{f}和水，{p}出发了。路上遇到了{pick(WORD['person'])}，两人结伴同行。他们穿过{pick(WORD['place'])}，绕过{pick(WORD['place'])}，终于在正午到达了目的地。",
-            f"昨天是{p}的生日，大家为{p}准备了一个惊喜派对。{pick(WORD['person'])}做了{f}，{pick(WORD['person'])}带来了{o}作为礼物。当{p}走进{pl}时，所有人一起喊道：'生日快乐！'{p}感动得流下了眼泪。",
+            f"周末的早晨，{p}决定去{pl}探险。背上{o}，带上{f}和水，{p}出发了。路上遇到了{self.pick(WORD['person'])}，两人结伴同行。他们穿过{self.pick(WORD['place'])}，绕过{self.pick(WORD['place'])}，终于在正午到达了目的地。",
+            f"昨天是{p}的生日，大家为{p}准备了一个惊喜派对。{self.pick(WORD['person'])}做了{f}，{self.pick(WORD['person'])}带来了{o}作为礼物。当{p}走进{pl}时，所有人一起喊道：'生日快乐！'{p}感动得流下了眼泪。",
             f"{p}最喜欢在{pl}里待着。这里有{c}的花和{self.pick(WORD['adj'])}的树，空气中飘着{f}的香味。{p}常常带上一本{o}，坐在{self.pick(WORD['place'])}上读一整个下午。",
         ])
         return tmpl
@@ -155,8 +155,8 @@ class MegaTemplateEngine:
         p, pl, c = self.pick(WORD["person"]), self.pick(WORD["place"]), self.pick(WORD["concept"])
         n, ac = self.pick(WORD["number"]), self.pick(WORD["action"])
         tmpl = self.rng.choice([
-            f"据报道，{pl}近日成功举办了关于{c}的国际研讨会。来自{pick(WORD['number'])}个国家和地区的{n}名专家学者参与了{ac}和交流。会上展示了多项{self.pick(WORD['adj'])}的研究成果，引发了广泛关注。",
-            f"经过{n}年的研发，由{p}领导的团队成功开发出了一种{self.pick(WORD['adj'])}的{c}系统。该系统在{ac}测试中表现出色，能将{self.pick(WORD['concept'])}提升约{pick(WORD['number'])}个百分点。",
+            f"据报道，{pl}近日成功举办了关于{c}的国际研讨会。来自{self.pick(WORD['number'])}个国家和地区的{n}名专家学者参与了{ac}和交流。会上展示了多项{self.pick(WORD['adj'])}的研究成果，引发了广泛关注。",
+            f"经过{n}年的研发，由{p}领导的团队成功开发出了一种{self.pick(WORD['adj'])}的{c}系统。该系统在{ac}测试中表现出色，能将{self.pick(WORD['concept'])}提升约{self.pick(WORD['number'])}个百分点。",
             f"最新数据显示，{pl}的{c}水平在过去{n}年中显著提升。专家分析认为，这得益于{self.pick(WORD['adj'])}的政策支持和{self.pick(WORD['adj'])}的技术进步。未来{n}年，这一趋势将继续保持。",
         ])
         return tmpl
@@ -240,7 +240,7 @@ class MegaTemplateEngine:
     def procedure(self):
         o, pl = self.pick(WORD["object"]), self.pick(WORD["place"])
         tmpl = self.rng.choice([
-            f"使用{o}的正确步骤：第一步，阅读说明。第二步，检查{o}是否完好。第三步，按照指示操作。第四步，使用后妥善保管。如果遇到问题，可以咨询{pick(WORD['person'])}或查阅相关资料。",
+            f"使用{o}的正确步骤：第一步，阅读说明。第二步，检查{o}是否完好。第三步，按照指示操作。第四步，使用后妥善保管。如果遇到问题，可以咨询{self.pick(WORD['person'])}或查阅相关资料。",
             f"参观{pl}的流程：首先，提前预约门票。其次，了解{pl}的开放时间和注意事项。到达后，按照路线图依次参观。最后，可以购买一些纪念品，如{o}和{self.pick(WORD['object'])}作为留念。",
         ])
         return tmpl
@@ -249,7 +249,7 @@ class MegaTemplateEngine:
         c = self.pick(WORD["concept"])
         tmpl = self.rng.choice([
             f"{c}是指通过{self.pick(WORD['adj'])}的方式来实现{self.pick(WORD['concept'])}的方法。{c}的核心包括{self.pick(WORD['adj'])}的{self.pick(WORD['concept'])}、{self.pick(WORD['adj'])}的{self.pick(WORD['concept'])}和{self.pick(WORD['adj'])}的{self.pick(WORD['concept'])}三个方面。",
-            f"简单来说，{c}就是用{self.pick(WORD['concept'])}来解决{self.pick(WORD['concept'])}问题的{self.pick(WORD['adj'])}方案。它在{pick(WORD['place'])}、{pick(WORD['place'])}和{pick(WORD['place'])}等场景中都有{self.pick(WORD['adj'])}的应用。",
+            f"简单来说，{c}就是用{self.pick(WORD['concept'])}来解决{self.pick(WORD['concept'])}问题的{self.pick(WORD['adj'])}方案。它在{self.pick(WORD['place'])}、{self.pick(WORD['place'])}和{self.pick(WORD['place'])}等场景中都有{self.pick(WORD['adj'])}的应用。",
         ])
         return tmpl
 
@@ -258,8 +258,8 @@ class MegaTemplateEngine:
         o, em, ac = self.pick(WORD["object"]), self.pick(WORD["adj"]), self.pick(WORD["action"])
         tmpl = self.rng.choice([
             f"从前，在{pl}附近住着一个叫{p}的孩子。一天，{p}在{self.pick(WORD['place'])}发现了一只受伤的{a}。{p}小心地把{a}带回家，用{o}为它包扎伤口。经过精心照料，{a}恢复了健康。从此，{p}和{a}成为了{self.pick(WORD['adj'])}的朋友。",
-            f"{p}有一个{self.pick(WORD['adj'])}的梦想——在{pl}建一座{self.pick(WORD['adj'])}的{self.pick(WORD['place'])}。经过{pick(WORD['number'])}年的努力，梦想终于实现了。现在，每天都有很多{pick(WORD['person'])}来这里{ac}和{self.pick(WORD['action'])}。",
-            f"在很久很久以前，{pl}是一片{self.pick(WORD['adj'])}的土地。人们在这里过着{self.pick(WORD['adj'])}的生活。直到有一天，一位叫{p}的{pick(WORD['person'])}来到这里，发现了地下埋藏的{self.pick(WORD['adj'])}的{self.pick(WORD['concept'])}。这个发现彻底改变了{pl}的命运。",
+            f"{p}有一个{self.pick(WORD['adj'])}的梦想——在{pl}建一座{self.pick(WORD['adj'])}的{self.pick(WORD['place'])}。经过{self.pick(WORD['number'])}年的努力，梦想终于实现了。现在，每天都有很多{self.pick(WORD['person'])}来这里{ac}和{self.pick(WORD['action'])}。",
+            f"在很久很久以前，{pl}是一片{self.pick(WORD['adj'])}的土地。人们在这里过着{self.pick(WORD['adj'])}的生活。直到有一天，一位叫{p}的{self.pick(WORD['person'])}来到这里，发现了地下埋藏的{self.pick(WORD['adj'])}的{self.pick(WORD['concept'])}。这个发现彻底改变了{pl}的命运。",
         ])
         return tmpl
 

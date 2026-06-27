@@ -125,7 +125,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--n_samples", type=int, default=100)
     parser.add_argument("-o", "--output", default="data/distilled.jsonl")
-    parser.add_argument("-b", "--batch_size", type=int, default=16)
+    parser.add_argument("-b", "--batch_size", type=int, default=32)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
@@ -140,15 +140,9 @@ def main():
         tok.pad_token = tok.eos_token
 
     model = AutoModelForCausalLM.from_pretrained(
-        model_id, dtype=torch.float16, device_map="cuda:0", local_files_only=True
+        model_id, dtype=torch.float16, device_map="cuda:0", local_files_only=True,
+        attn_implementation="sdpa",
     ).eval()
-
-    # Try torch.compile for speed
-    try:
-        model = torch.compile(model, mode="reduce-overhead")
-        print("  torch.compile: ON")
-    except:
-        print("  torch.compile: OFF (not supported)")
 
     n_params = sum(p.numel() for p in model.parameters())
     print(f"  Teacher: {n_params:,} params")

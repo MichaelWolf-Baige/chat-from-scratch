@@ -1,0 +1,19 @@
+{
+  "num_texts": 1000,
+  "total_chars": 133960,
+  "length": {
+    "min": 30,
+    "max": 483,
+    "mean": 134.0,
+    "median": 113
+  },
+  "avg_cjk_ratio": 0.881,
+  "sources": {
+    "wikipedia": 350,
+    "fallback_diverse": 349,
+    "news_fallback_wiki": 250,
+    "dialog_handwritten": 51
+  },
+  "created_at": "2026-06-27T10:59:51.234008",
+  "seed": 42
+}
