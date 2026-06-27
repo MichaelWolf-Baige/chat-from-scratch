@@ -31,34 +31,30 @@ d=512, L=24, GQA 2:1, QK-Norm, ~99M params。烟测试 5 项全过。
 
 ---
 
-## ✅ A/B 对比实验 — 完成！
+## ✅ 完整实验记录
 
-同 token 量（~13.35M）对比我们的蒸馏数据 vs MiniMind 数据。
+参见 **`docs/experiments-log.md`** — 8 次训练实验的完整记录，含命令、数据、PPL、生成测试。
 
-| 指标 | 实验 A (我们的蒸馏) | 实验 B (MiniMind 等量) |
-|------|--------------------|-----------------------|
-| 文档数 | 50,000 | 62,643 |
-| Token 数 | 13,350,118 | 13,349,945 |
-| **VAL PPL** | **5** 🔥 | **11** |
-| 最终 Loss | ~1.55 | ~2.24 |
-| AI/ML 生成 | ✅ 精准专业 | ⚠️ 啰嗦 |
-| 常识生成 | ❌ 事实错误 | ✅ 自然流畅 |
-| 训练时间 | 31min | 31min |
+### 实验矩阵总览
 
-### 结论
+| # | 实验 | Wiki 比例 | Wiki 类型 | VAL PPL |
+|---|------|----------|-----------|---------|
+| A | 蒸馏基线 | 0% | — | **5** |
+| B | MiniMind 等量 | 0% | — | 11 |
+| C1 | 蒸馏 100%（对照） | 0% | — | **5** |
+| C2 | 蒸馏+原始Wiki | 20% | 原始 | 8 |
+| C3 | 蒸馏+原始Wiki | 40% | 原始 | 12 |
+| RW-20 | 蒸馏+改写Wiki | 20% | 改写 | 6.8 |
+| RW-40 | 蒸馏+改写Wiki | 40% | 改写 | 9 |
+| RW-50 | 蒸馏+改写Wiki | 50% | 改写 | 10 |
 
-**我们的蒸馏数据 PPL 碾压 MiniMind（5 vs 11），但生成质量各有胜负：**
+### 核心结论
 
-- **优势**：AI/学术类话题更精准——蒸馏数据学术风格一致，模型学得更快
-- **劣势**：常识/生活类话题差——seed prompts 偏向 AI 领域，覆盖面不够
-- **下一步**：扩大蒸馏 prompt 领域覆盖（常识、地理、天气、数学），不是单纯加数据量
-
-### 关键发现
-
-1. 13M tokens 蒸馏数据就能达到 VAL PPL=5，生成质量在 AI 领域超过 MiniMind 等量数据
-2. MiniMind 1.2GB 数据多样性更好但"效率"更低——需要更多 token 才能达到同样 PPL
-3. **数据质量 > 数据量**：80MB 高质量蒸馏 ≫ 1.2GB 低质数据（在匹配 token 量时）
-4. 单卡训练完全稳定，31 分钟，零崩溃——DDP 问题已彻底绕过
+1. **纯蒸馏数据 PPL=5 最优**——同 token 量下碾压 MiniMind（11）和混合 Wiki 方案
+2. **改写 Wiki 始终优于原始 Wiki**——Phi-4 "web rewrites" 路线验证有效
+3. **Wiki 比例越高 PPL 越差，无相变**——100M 模型的容量分配阈值可能在 >50%
+4. **瓶颈是模型大小**：100M 参数容量不足同时学好两种数据风格
+5. **风格一致性 > 数据多样性**（对小模型）——容量有限时，统一风格 > 多样化
 
 ---
 
@@ -69,6 +65,7 @@ d=512, L=24, GQA 2:1, QK-Norm, ~99M params。烟测试 5 项全过。
 | `scripts/train_single.py` | 单卡训练，不会崩 |
 | `scripts/gen_test.py` | 加载 checkpoint，生成测试 |
 | `scripts/sample_minimind.py` | 按 token 数等量采样 MiniMind 数据 |
+| `scripts/rewrite_wiki.py` | 用 Teacher 改写 Wiki 为对话体（Phi-4 路线）|
 | `scripts/distill_pipeline.py` | 蒸馏数据生成（已完成使命）|
 | `scripts/smoke_test.py` | 最小 pipeline 验证（500 文本/50 步）|
 
@@ -77,13 +74,16 @@ d=512, L=24, GQA 2:1, QK-Norm, ~99M params。烟测试 5 项全过。
 | 路径 | 内容 |
 |------|------|
 | `~/chat-from-scratch/` | 项目根目录 |
-| `~/chat-from-scratch/data/distill_merged.jsonl` | 我们的蒸馏数据 (80MB) |
+| `~/chat-from-scratch/data/distill_merged.jsonl` | 我们的蒸馏数据 (80MB, 87,395条) |
+| `~/chat-from-scratch/data/wiki_zh_clean.jsonl` | 中文维基百科 (2.2GB, 1.36M条) |
+| `~/chat-from-scratch/data/wiki_rw_all.jsonl` | 改写 Wiki (17,660条, ~25MB) |
 | `~/chat-from-scratch/data/minimind_sampled.jsonl` | MiniMind 等量采样 (~45MB, 62,643条) |
+| `~/chat-from-scratch/data/mixed/` | 各种比例混合数据集 |
 | `~/minimind-master/dataset/pretrain_t2t_mini.jsonl` | MiniMind 原始数据 (1.2GB) |
 | `~/chat-from-scratch/tokenizers/phase1_8k_real/tokenizer.json` | Tokenizer (580KB) |
-| `~/chat-from-scratch/checkpoints/p3_ours.pt` | 实验 A：蒸馏数据 100M checkpoint (0.4GB, PPL=5) |
-| `~/chat-from-scratch/checkpoints/p3_minimind.pt` | 实验 B：MiniMind 等量 100M checkpoint (0.4GB, PPL=11) |
-| `~/chat-from-scratch/checkpoints/p2_realdata/step_6000.pt` | Plan B 100M checkpoint (1.2GB) |
+| `~/chat-from-scratch/checkpoints/p3_ours.pt` | 实验 A：蒸馏 100M (PPL=5) |
+| `~/chat-from-scratch/checkpoints/p3_minimind.pt` | 实验 B：MiniMind 100M (PPL=11) |
+| `~/chat-from-scratch/checkpoints/mix_*.pt` | C1-C3, RW-20~50 checkpoints |
 
 ## SSH 连接
 
@@ -109,11 +109,15 @@ ssh school  # 已配好 KexAlgorithms 兼容
 
 ## 下一步
 
-1. **数据混合验证**：60% 蒸馏 + 25% 天然 + 15% MiniMind，验证混合策略是否优于纯蒸馏
-2. **扩大蒸馏 prompt 领域覆盖**：加常识、地理、天气、数学等 prompt，补上当前短板
-3. **超参搜索**：9 卡独立跑 9 组配置，和数据蒸馏并行
-4. **全量数据训练**：数据质量确认后用全部数据训练
-5. **Tokenizer 升级**：当前 8K 词表偏小，后续可升级到 16K+ 提升中文编码效率
+基于 8 次实验的核心结论：**100M 模型容量是瓶颈，风格一致性 > 多样性**。
+
+三个可选方向：
+
+| 路线 | 做法 | 预期 |
+|------|------|------|
+| **A. 精修蒸馏** | 扩 prompt 覆盖更多领域（常识/地理/数学），保持纯蒸馏路线 | PPL 可能突破 5 以下 |
+| **B. 升级模型** | 升到 300-400M 参数，用混合数据（改写 Wiki）| 容量阈值下降，混合开始有效 |
+| **C. 极端混合** | 70% 改写 Wiki + 30% 蒸馏，以 Wiki 为主 | Wiki 成为主流数据源，跨过阈值
 
 ## 不做的
 
