@@ -31,35 +31,34 @@ d=512, L=24, GQA 2:1, QK-Norm, ~99M params。烟测试 5 项全过。
 
 ---
 
-## 待做：A/B 对比实验
+## ✅ A/B 对比实验 — 完成！
 
-目标：同 token 量（~13M）对比我们的蒸馏数据 vs MiniMind 数据。
+同 token 量（~13.35M）对比我们的蒸馏数据 vs MiniMind 数据。
 
-### 实验 A：我们的蒸馏数据 ← 下一步
+| 指标 | 实验 A (我们的蒸馏) | 实验 B (MiniMind 等量) |
+|------|--------------------|-----------------------|
+| 文档数 | 50,000 | 62,643 |
+| Token 数 | 13,350,118 | 13,349,945 |
+| **VAL PPL** | **5** 🔥 | **11** |
+| 最终 Loss | ~1.55 | ~2.24 |
+| AI/ML 生成 | ✅ 精准专业 | ⚠️ 啰嗦 |
+| 常识生成 | ❌ 事实错误 | ✅ 自然流畅 |
+| 训练时间 | 31min | 31min |
 
-```bash
-# 单卡训练 (~15分钟)
-ssh school "source ~/miniconda3/etc/profile.d/conda.sh && conda activate minimind && cd ~/chat-from-scratch && CUDA_VISIBLE_DEVICES=0 python scripts/train_single.py -d data/distill_merged.jsonl -o checkpoints/p3_ours.pt -e 2 --max_docs 50000"
+### 结论
 
-# 生成测试
-ssh school "... && CUDA_VISIBLE_DEVICES=0 python scripts/gen_test.py -c checkpoints/p3_ours.pt"
-```
+**我们的蒸馏数据 PPL 碾压 MiniMind（5 vs 11），但生成质量各有胜负：**
 
-### 实验 B：MiniMind 等量采样
+- **优势**：AI/学术类话题更精准——蒸馏数据学术风格一致，模型学得更快
+- **劣势**：常识/生活类话题差——seed prompts 偏向 AI 领域，覆盖面不够
+- **下一步**：扩大蒸馏 prompt 领域覆盖（常识、地理、天气、数学），不是单纯加数据量
 
-需要先写一个采样脚本，从 `pretrain_t2t_mini.jsonl` 中等量抽取 ~50K 条文档（匹配 A 组的 token 量）。
+### 关键发现
 
-```bash
-CUDA_VISIBLE_DEVICES=1 python scripts/train_single.py -d data/minimind_sampled.jsonl -o checkpoints/p3_minimind.pt -e 2 --max_docs 50000
-CUDA_VISIBLE_DEVICES=1 python scripts/gen_test.py -c checkpoints/p3_minimind.pt
-```
-
-### 对比维度
-
-| 实验 | 数据源 | token 量 | 模型 | 对比 |
-|------|--------|---------|------|------|
-| A | 我们的蒸馏 | ~13M | 100M | 基线 |
-| B | MiniMind 等量 | ~13M | 100M | 同龄质量对比 |
+1. 13M tokens 蒸馏数据就能达到 VAL PPL=5，生成质量在 AI 领域超过 MiniMind 等量数据
+2. MiniMind 1.2GB 数据多样性更好但"效率"更低——需要更多 token 才能达到同样 PPL
+3. **数据质量 > 数据量**：80MB 高质量蒸馏 ≫ 1.2GB 低质数据（在匹配 token 量时）
+4. 单卡训练完全稳定，31 分钟，零崩溃——DDP 问题已彻底绕过
 
 ---
 
@@ -69,6 +68,7 @@ CUDA_VISIBLE_DEVICES=1 python scripts/gen_test.py -c checkpoints/p3_minimind.pt
 |------|------|
 | `scripts/train_single.py` | 单卡训练，不会崩 |
 | `scripts/gen_test.py` | 加载 checkpoint，生成测试 |
+| `scripts/sample_minimind.py` | 按 token 数等量采样 MiniMind 数据 |
 | `scripts/distill_pipeline.py` | 蒸馏数据生成（已完成使命）|
 | `scripts/smoke_test.py` | 最小 pipeline 验证（500 文本/50 步）|
 
@@ -78,8 +78,11 @@ CUDA_VISIBLE_DEVICES=1 python scripts/gen_test.py -c checkpoints/p3_minimind.pt
 |------|------|
 | `~/chat-from-scratch/` | 项目根目录 |
 | `~/chat-from-scratch/data/distill_merged.jsonl` | 我们的蒸馏数据 (80MB) |
-| `~/minimind-master/dataset/pretrain_t2t_mini.jsonl` | MiniMind 数据 (1.2GB) |
+| `~/chat-from-scratch/data/minimind_sampled.jsonl` | MiniMind 等量采样 (~45MB, 62,643条) |
+| `~/minimind-master/dataset/pretrain_t2t_mini.jsonl` | MiniMind 原始数据 (1.2GB) |
 | `~/chat-from-scratch/tokenizers/phase1_8k_real/tokenizer.json` | Tokenizer (580KB) |
+| `~/chat-from-scratch/checkpoints/p3_ours.pt` | 实验 A：蒸馏数据 100M checkpoint (0.4GB, PPL=5) |
+| `~/chat-from-scratch/checkpoints/p3_minimind.pt` | 实验 B：MiniMind 等量 100M checkpoint (0.4GB, PPL=11) |
 | `~/chat-from-scratch/checkpoints/p2_realdata/step_6000.pt` | Plan B 100M checkpoint (1.2GB) |
 
 ## SSH 连接
@@ -93,6 +96,13 @@ ssh school  # 已配好 KexAlgorithms 兼容
 ## GPU 状态（上次检查）
 
 9x RTX 3090，全部空闲。GPU 0 有僵尸进程残留时需要 `nvidia-smi --query-compute-apps=pid | xargs kill -9`。
+
+## 下一步
+
+1. **扩大蒸馏 prompt 领域覆盖**：加常识、地理、天气、数学等 prompt，补上当前短板
+2. **全量蒸馏数据训练**：用全部 87,395 条（~23M tokens）训练，看 PPL 和生成是否继续提升
+3. **混合训练**：蒸馏数据 + MiniMind 数据混合，取两者的优势
+4. **Tokenizer 升级**：当前 8K 词表偏小，后续可升级到 16K+ 提升中文编码效率
 
 ## 不做的
 
