@@ -1,0 +1,16 @@
+{
+  "num_texts": 41550,
+  "num_tokens": 13352529,
+  "num_params": 98591232,
+  "total_steps": 3096,
+  "batch_size": 8,
+  "seq_len": 1024,
+  "epochs": 2,
+  "lr": 0.0005,
+  "val_ppl": 12.0,
+  "train_time_min": 31.0,
+  "data_path": "data/mixed/ratio_60_40.jsonl",
+  "experiment": "C3_origwiki_40pct_13M_2ep",
+  "description": "Distill + original Wiki 60/40",
+  "num_loss_points": 71
+}

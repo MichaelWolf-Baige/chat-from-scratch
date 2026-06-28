@@ -1,0 +1,83 @@
+
+=======================================================
+SINGLE-GPU TRAINING: data/minimind_sampled.jsonl
+  62,643 texts → 13,349,945 tokens
+=======================================================
+  98,591,232 params | 3096 steps | bs=8x1024 | 2 epochs | LR=0.0005
+  step     1/3096 | loss=9.1402 ppl=9322 | 4K tok/s
+  step     2/3096 | loss=8.8896 ppl=7256 | 6K tok/s
+  step     3/3096 | loss=8.9030 ppl=7354 | 8K tok/s
+  step     4/3096 | loss=8.9395 ppl=7627 | 9K tok/s
+  step     5/3096 | loss=8.8685 ppl=7105 | 9K tok/s
+  step     6/3096 | loss=8.8191 ppl=6762 | 10K tok/s
+  step     7/3096 | loss=8.7438 ppl=6272 | 10K tok/s
+  step     8/3096 | loss=8.7394 ppl=6244 | 11K tok/s
+  step     9/3096 | loss=8.7199 ppl=6123 | 11K tok/s
+  step    10/3096 | loss=8.6042 ppl=5455 | 11K tok/s
+  step    50/3096 | loss=7.7400 ppl=2299 | 13K tok/s
+  step   100/3096 | loss=6.9949 ppl=1091 | 14K tok/s
+  step   150/3096 | loss=6.5042 ppl=668 | 14K tok/s
+  step   200/3096 | loss=5.8478 ppl=346 | 14K tok/s
+  step   250/3096 | loss=5.4156 ppl=225 | 14K tok/s
+  step   300/3096 | loss=5.1907 ppl=180 | 14K tok/s
+  step   350/3096 | loss=4.9831 ppl=146 | 14K tok/s
+  step   400/3096 | loss=4.5625 ppl=96 | 14K tok/s
+  step   450/3096 | loss=4.2466 ppl=70 | 14K tok/s
+  step   500/3096 | loss=4.3079 ppl=74 | 14K tok/s
+  step   550/3096 | loss=3.9873 ppl=54 | 14K tok/s
+  step   600/3096 | loss=3.7191 ppl=41 | 14K tok/s
+  step   650/3096 | loss=3.6815 ppl=40 | 14K tok/s
+  step   700/3096 | loss=3.7458 ppl=42 | 14K tok/s
+  step   750/3096 | loss=3.5901 ppl=36 | 14K tok/s
+  step   800/3096 | loss=3.6063 ppl=37 | 14K tok/s
+  step   850/3096 | loss=3.6549 ppl=39 | 14K tok/s
+  step   900/3096 | loss=3.4978 ppl=33 | 14K tok/s
+  step   950/3096 | loss=3.4009 ppl=30 | 14K tok/s
+  step  1000/3096 | loss=3.4437 ppl=31 | 14K tok/s
+  step  1050/3096 | loss=3.2020 ppl=25 | 14K tok/s
+  step  1100/3096 | loss=3.2695 ppl=26 | 14K tok/s
+  step  1150/3096 | loss=3.1062 ppl=22 | 14K tok/s
+  step  1200/3096 | loss=3.1639 ppl=24 | 14K tok/s
+  step  1250/3096 | loss=3.2578 ppl=26 | 14K tok/s
+  step  1300/3096 | loss=3.0679 ppl=21 | 14K tok/s
+  step  1350/3096 | loss=3.0804 ppl=22 | 14K tok/s
+  step  1400/3096 | loss=3.2393 ppl=26 | 14K tok/s
+  step  1450/3096 | loss=3.0847 ppl=22 | 14K tok/s
+  step  1500/3096 | loss=3.0362 ppl=21 | 14K tok/s
+  step  1550/3096 | loss=2.8878 ppl=18 | 14K tok/s
+  step  1600/3096 | loss=2.5824 ppl=13 | 14K tok/s
+  step  1650/3096 | loss=3.0005 ppl=20 | 14K tok/s
+  step  1700/3096 | loss=2.7378 ppl=15 | 14K tok/s
+  step  1750/3096 | loss=2.6720 ppl=14 | 14K tok/s
+  step  1800/3096 | loss=2.6850 ppl=15 | 14K tok/s
+  step  1850/3096 | loss=2.7562 ppl=16 | 14K tok/s
+  step  1900/3096 | loss=2.6784 ppl=15 | 14K tok/s
+  step  1950/3096 | loss=2.5806 ppl=13 | 14K tok/s
+  step  2000/3096 | loss=2.6915 ppl=15 | 14K tok/s
+  step  2050/3096 | loss=2.5388 ppl=13 | 14K tok/s
+  step  2100/3096 | loss=2.8024 ppl=16 | 14K tok/s
+  step  2150/3096 | loss=2.7035 ppl=15 | 14K tok/s
+  step  2200/3096 | loss=2.6289 ppl=14 | 14K tok/s
+  step  2250/3096 | loss=2.5747 ppl=13 | 14K tok/s
+  step  2300/3096 | loss=2.6280 ppl=14 | 14K tok/s
+  step  2350/3096 | loss=2.7090 ppl=15 | 14K tok/s
+  step  2400/3096 | loss=2.6518 ppl=14 | 14K tok/s
+  step  2450/3096 | loss=2.4704 ppl=12 | 14K tok/s
+  step  2500/3096 | loss=2.6490 ppl=14 | 14K tok/s
+  step  2550/3096 | loss=2.7951 ppl=16 | 14K tok/s
+  step  2600/3096 | loss=2.6923 ppl=15 | 14K tok/s
+  step  2650/3096 | loss=2.4768 ppl=12 | 14K tok/s
+  step  2700/3096 | loss=2.4885 ppl=12 | 14K tok/s
+  step  2750/3096 | loss=2.7165 ppl=15 | 14K tok/s
+  step  2800/3096 | loss=2.3955 ppl=11 | 14K tok/s
+  step  2850/3096 | loss=2.5789 ppl=13 | 14K tok/s
+  step  2900/3096 | loss=2.4566 ppl=12 | 14K tok/s
+  step  2950/3096 | loss=2.4175 ppl=11 | 14K tok/s
+  step  3000/3096 | loss=2.2415 ppl=9 | 14K tok/s
+  step  3050/3096 | loss=2.4625 ppl=12 | 14K tok/s
+
+=======================================================
+DONE: checkpoints/p3_minimind.pt
+  VAL PPL: 11 | 31.1min | 14K tok/s
+  Checkpoint: checkpoints/p3_minimind.pt (0.4GB)
+=======================================================

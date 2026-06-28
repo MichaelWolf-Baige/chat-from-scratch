@@ -1,0 +1,16 @@
+{
+  "num_texts": 87395,
+  "num_tokens": 23337509,
+  "num_params": 192987648,
+  "total_steps": 10824,
+  "batch_size": 4,
+  "seq_len": 1024,
+  "epochs": 2,
+  "lr": 0.0005,
+  "val_ppl": 4.0,
+  "train_time_min": 114.7,
+  "data_path": "data/exp/full_distill.jsonl",
+  "experiment": "S1_deep_narrow_48L_23M_2ep",
+  "description": "Deep & Narrow d=512 L=48 193M",
+  "num_loss_points": 226
+}

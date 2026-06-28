@@ -1,0 +1,83 @@
+
+=======================================================
+SINGLE-GPU TRAINING: data/mixed/ratio_100_0.jsonl
+  49,987 texts → 13,350,010 tokens
+=======================================================
+  98,591,232 params | 3096 steps | bs=8x1024 | 2 epochs | LR=0.0005
+  step     1/3096 | loss=9.1143 ppl=9084 | 5K tok/s
+  step     2/3096 | loss=8.9165 ppl=7454 | 7K tok/s
+  step     3/3096 | loss=8.9528 ppl=7729 | 8K tok/s
+  step     4/3096 | loss=8.9323 ppl=7573 | 9K tok/s
+  step     5/3096 | loss=8.8775 ppl=7169 | 10K tok/s
+  step     6/3096 | loss=8.7713 ppl=6446 | 10K tok/s
+  step     7/3096 | loss=8.7450 ppl=6279 | 11K tok/s
+  step     8/3096 | loss=8.6376 ppl=5640 | 11K tok/s
+  step     9/3096 | loss=8.6189 ppl=5536 | 11K tok/s
+  step    10/3096 | loss=8.6315 ppl=5605 | 12K tok/s
+  step    50/3096 | loss=7.5147 ppl=1835 | 13K tok/s
+  step   100/3096 | loss=6.5306 ppl=686 | 13K tok/s
+  step   150/3096 | loss=5.5380 ppl=254 | 13K tok/s
+  step   200/3096 | loss=5.0202 ppl=151 | 13K tok/s
+  step   250/3096 | loss=4.4497 ppl=86 | 14K tok/s
+  step   300/3096 | loss=4.0867 ppl=60 | 14K tok/s
+  step   350/3096 | loss=3.6008 ppl=37 | 14K tok/s
+  step   400/3096 | loss=3.3987 ppl=30 | 14K tok/s
+  step   450/3096 | loss=3.4877 ppl=33 | 14K tok/s
+  step   500/3096 | loss=3.1810 ppl=24 | 14K tok/s
+  step   550/3096 | loss=3.0317 ppl=21 | 14K tok/s
+  step   600/3096 | loss=2.8536 ppl=17 | 14K tok/s
+  step   650/3096 | loss=2.7377 ppl=15 | 14K tok/s
+  step   700/3096 | loss=2.5717 ppl=13 | 14K tok/s
+  step   750/3096 | loss=2.6450 ppl=14 | 14K tok/s
+  step   800/3096 | loss=2.6363 ppl=14 | 14K tok/s
+  step   850/3096 | loss=2.4328 ppl=11 | 14K tok/s
+  step   900/3096 | loss=2.2928 ppl=10 | 14K tok/s
+  step   950/3096 | loss=2.3403 ppl=10 | 14K tok/s
+  step  1000/3096 | loss=2.4898 ppl=12 | 14K tok/s
+  step  1050/3096 | loss=2.3538 ppl=11 | 14K tok/s
+  step  1100/3096 | loss=2.4601 ppl=12 | 14K tok/s
+  step  1150/3096 | loss=2.3259 ppl=10 | 14K tok/s
+  step  1200/3096 | loss=2.0785 ppl=8 | 14K tok/s
+  step  1250/3096 | loss=2.1646 ppl=9 | 14K tok/s
+  step  1300/3096 | loss=2.2654 ppl=10 | 14K tok/s
+  step  1350/3096 | loss=2.1579 ppl=9 | 14K tok/s
+  step  1400/3096 | loss=2.1769 ppl=9 | 14K tok/s
+  step  1450/3096 | loss=2.2258 ppl=9 | 14K tok/s
+  step  1500/3096 | loss=1.9014 ppl=7 | 14K tok/s
+  step  1550/3096 | loss=1.9825 ppl=7 | 14K tok/s
+  step  1600/3096 | loss=1.9955 ppl=7 | 14K tok/s
+  step  1650/3096 | loss=1.8860 ppl=7 | 14K tok/s
+  step  1700/3096 | loss=2.0030 ppl=7 | 14K tok/s
+  step  1750/3096 | loss=2.0401 ppl=8 | 14K tok/s
+  step  1800/3096 | loss=1.8991 ppl=7 | 14K tok/s
+  step  1850/3096 | loss=1.7801 ppl=6 | 14K tok/s
+  step  1900/3096 | loss=2.0081 ppl=7 | 14K tok/s
+  step  1950/3096 | loss=1.8218 ppl=6 | 14K tok/s
+  step  2000/3096 | loss=2.1442 ppl=9 | 14K tok/s
+  step  2050/3096 | loss=2.0130 ppl=7 | 14K tok/s
+  step  2100/3096 | loss=2.0596 ppl=8 | 14K tok/s
+  step  2150/3096 | loss=2.1266 ppl=8 | 14K tok/s
+  step  2200/3096 | loss=1.9030 ppl=7 | 14K tok/s
+  step  2250/3096 | loss=1.8019 ppl=6 | 14K tok/s
+  step  2300/3096 | loss=1.9211 ppl=7 | 14K tok/s
+  step  2350/3096 | loss=1.7013 ppl=5 | 14K tok/s
+  step  2400/3096 | loss=1.8577 ppl=6 | 14K tok/s
+  step  2450/3096 | loss=1.9437 ppl=7 | 14K tok/s
+  step  2500/3096 | loss=1.7591 ppl=6 | 14K tok/s
+  step  2550/3096 | loss=1.9264 ppl=7 | 14K tok/s
+  step  2600/3096 | loss=1.8233 ppl=6 | 14K tok/s
+  step  2650/3096 | loss=1.6494 ppl=5 | 14K tok/s
+  step  2700/3096 | loss=1.8069 ppl=6 | 14K tok/s
+  step  2750/3096 | loss=1.8412 ppl=6 | 14K tok/s
+  step  2800/3096 | loss=1.7621 ppl=6 | 14K tok/s
+  step  2850/3096 | loss=1.5507 ppl=5 | 14K tok/s
+  step  2900/3096 | loss=1.6776 ppl=5 | 14K tok/s
+  step  2950/3096 | loss=1.6170 ppl=5 | 14K tok/s
+  step  3000/3096 | loss=1.6626 ppl=5 | 14K tok/s
+  step  3050/3096 | loss=1.6246 ppl=5 | 14K tok/s
+
+=======================================================
+DONE: checkpoints/mix_100_0.pt
+  VAL PPL: 5 | 31.1min | 14K tok/s
+  Checkpoint: checkpoints/mix_100_0.pt (0.4GB)
+=======================================================

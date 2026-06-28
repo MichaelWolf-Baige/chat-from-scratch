@@ -1,0 +1,16 @@
+{
+  "num_texts": 47274,
+  "num_tokens": 13350391,
+  "num_params": 98591232,
+  "total_steps": 12384,
+  "batch_size": 8,
+  "seq_len": 1024,
+  "epochs": 8,
+  "lr": 0.0005,
+  "val_ppl": 8.0,
+  "train_time_min": 125.1,
+  "data_path": "data/exp/mix13m_80_20_rw.jsonl",
+  "experiment": "E4_mix_rwwiki_13M_8ep",
+  "description": "Mixed 80/20 13M 8 epochs",
+  "num_loss_points": 257
+}

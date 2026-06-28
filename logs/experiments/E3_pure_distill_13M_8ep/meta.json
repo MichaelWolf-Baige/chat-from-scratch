@@ -1,0 +1,16 @@
+{
+  "num_texts": 49987,
+  "num_tokens": 13350010,
+  "num_params": 98591232,
+  "total_steps": 12384,
+  "batch_size": 8,
+  "seq_len": 1024,
+  "epochs": 8,
+  "lr": 0.0005,
+  "val_ppl": 6.0,
+  "train_time_min": 126.6,
+  "data_path": "data/mixed/ratio_100_0.jsonl",
+  "experiment": "E3_pure_distill_13M_8ep",
+  "description": "Pure distill 13M 8 epochs",
+  "num_loss_points": 257
+}

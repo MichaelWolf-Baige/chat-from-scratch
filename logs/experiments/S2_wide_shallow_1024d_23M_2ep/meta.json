@@ -1,0 +1,16 @@
+{
+  "num_texts": 87395,
+  "num_tokens": 23337509,
+  "num_params": 206599168,
+  "total_steps": 10824,
+  "batch_size": 4,
+  "seq_len": 1024,
+  "epochs": 2,
+  "lr": 0.0005,
+  "val_ppl": 4.0,
+  "train_time_min": 85.8,
+  "data_path": "data/exp/full_distill.jsonl",
+  "experiment": "S2_wide_shallow_1024d_23M_2ep",
+  "description": "Wide & Shallow d=1024 L=14 207M",
+  "num_loss_points": 226
+}

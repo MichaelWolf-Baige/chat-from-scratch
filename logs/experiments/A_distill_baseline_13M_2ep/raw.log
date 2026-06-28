@@ -1,0 +1,83 @@
+
+=======================================================
+SINGLE-GPU TRAINING: data/distill_merged.jsonl
+  50,000 texts → 13,350,118 tokens
+=======================================================
+  98,591,232 params | 3096 steps | bs=8x1024 | 2 epochs | LR=0.0005
+  step     1/3096 | loss=9.1308 ppl=9235 | 5K tok/s
+  step     2/3096 | loss=8.8220 ppl=6782 | 8K tok/s
+  step     3/3096 | loss=8.8067 ppl=6679 | 9K tok/s
+  step     4/3096 | loss=8.7928 ppl=6587 | 10K tok/s
+  step     5/3096 | loss=8.7143 ppl=6090 | 10K tok/s
+  step     6/3096 | loss=8.7101 ppl=6064 | 11K tok/s
+  step     7/3096 | loss=8.6611 ppl=5774 | 11K tok/s
+  step     8/3096 | loss=8.5697 ppl=5270 | 11K tok/s
+  step     9/3096 | loss=8.5573 ppl=5205 | 12K tok/s
+  step    10/3096 | loss=8.5499 ppl=5166 | 12K tok/s
+  step    50/3096 | loss=7.5138 ppl=1833 | 13K tok/s
+  step   100/3096 | loss=6.5208 ppl=679 | 13K tok/s
+  step   150/3096 | loss=5.8270 ppl=339 | 14K tok/s
+  step   200/3096 | loss=4.9320 ppl=139 | 14K tok/s
+  step   250/3096 | loss=4.4909 ppl=89 | 14K tok/s
+  step   300/3096 | loss=4.0035 ppl=55 | 14K tok/s
+  step   350/3096 | loss=3.8588 ppl=47 | 14K tok/s
+  step   400/3096 | loss=3.3409 ppl=28 | 14K tok/s
+  step   450/3096 | loss=3.3877 ppl=30 | 14K tok/s
+  step   500/3096 | loss=3.0071 ppl=20 | 14K tok/s
+  step   550/3096 | loss=3.0557 ppl=21 | 14K tok/s
+  step   600/3096 | loss=2.8064 ppl=17 | 14K tok/s
+  step   650/3096 | loss=2.7746 ppl=16 | 14K tok/s
+  step   700/3096 | loss=2.5723 ppl=13 | 14K tok/s
+  step   750/3096 | loss=2.6283 ppl=14 | 14K tok/s
+  step   800/3096 | loss=2.6128 ppl=14 | 14K tok/s
+  step   850/3096 | loss=2.4817 ppl=12 | 14K tok/s
+  step   900/3096 | loss=2.5234 ppl=12 | 14K tok/s
+  step   950/3096 | loss=2.3292 ppl=10 | 14K tok/s
+  step  1000/3096 | loss=2.2809 ppl=10 | 14K tok/s
+  step  1050/3096 | loss=2.2862 ppl=10 | 14K tok/s
+  step  1100/3096 | loss=2.3554 ppl=11 | 14K tok/s
+  step  1150/3096 | loss=2.2462 ppl=9 | 14K tok/s
+  step  1200/3096 | loss=2.0918 ppl=8 | 14K tok/s
+  step  1250/3096 | loss=2.2578 ppl=10 | 14K tok/s
+  step  1300/3096 | loss=2.2418 ppl=9 | 14K tok/s
+  step  1350/3096 | loss=2.0777 ppl=8 | 14K tok/s
+  step  1400/3096 | loss=2.2215 ppl=9 | 14K tok/s
+  step  1450/3096 | loss=2.2822 ppl=10 | 14K tok/s
+  step  1500/3096 | loss=2.0437 ppl=8 | 14K tok/s
+  step  1550/3096 | loss=1.9452 ppl=7 | 14K tok/s
+  step  1600/3096 | loss=1.9738 ppl=7 | 14K tok/s
+  step  1650/3096 | loss=2.0528 ppl=8 | 14K tok/s
+  step  1700/3096 | loss=1.8944 ppl=7 | 14K tok/s
+  step  1750/3096 | loss=2.0514 ppl=8 | 14K tok/s
+  step  1800/3096 | loss=1.9704 ppl=7 | 14K tok/s
+  step  1850/3096 | loss=1.9969 ppl=7 | 14K tok/s
+  step  1900/3096 | loss=1.8542 ppl=6 | 14K tok/s
+  step  1950/3096 | loss=1.9057 ppl=7 | 14K tok/s
+  step  2000/3096 | loss=1.8448 ppl=6 | 14K tok/s
+  step  2050/3096 | loss=1.8731 ppl=7 | 14K tok/s
+  step  2100/3096 | loss=2.0310 ppl=8 | 14K tok/s
+  step  2150/3096 | loss=1.7383 ppl=6 | 14K tok/s
+  step  2200/3096 | loss=1.7768 ppl=6 | 14K tok/s
+  step  2250/3096 | loss=1.8837 ppl=7 | 14K tok/s
+  step  2300/3096 | loss=1.8712 ppl=6 | 14K tok/s
+  step  2350/3096 | loss=1.8726 ppl=7 | 14K tok/s
+  step  2400/3096 | loss=1.8488 ppl=6 | 14K tok/s
+  step  2450/3096 | loss=1.8884 ppl=7 | 14K tok/s
+  step  2500/3096 | loss=1.9730 ppl=7 | 14K tok/s
+  step  2550/3096 | loss=1.9568 ppl=7 | 14K tok/s
+  step  2600/3096 | loss=1.9014 ppl=7 | 14K tok/s
+  step  2650/3096 | loss=1.7925 ppl=6 | 14K tok/s
+  step  2700/3096 | loss=1.6713 ppl=5 | 14K tok/s
+  step  2750/3096 | loss=1.8257 ppl=6 | 14K tok/s
+  step  2800/3096 | loss=1.7885 ppl=6 | 14K tok/s
+  step  2850/3096 | loss=1.8053 ppl=6 | 14K tok/s
+  step  2900/3096 | loss=1.7027 ppl=5 | 14K tok/s
+  step  2950/3096 | loss=1.5508 ppl=5 | 14K tok/s
+  step  3000/3096 | loss=1.7757 ppl=6 | 14K tok/s
+  step  3050/3096 | loss=1.6375 ppl=5 | 14K tok/s
+
+=======================================================
+DONE: checkpoints/p3_ours.pt
+  VAL PPL: 5 | 31.0min | 14K tok/s
+  Checkpoint: checkpoints/p3_ours.pt (0.4GB)
+=======================================================

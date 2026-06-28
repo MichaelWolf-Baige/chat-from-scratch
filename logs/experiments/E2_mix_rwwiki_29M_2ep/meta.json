@@ -1,0 +1,16 @@
+{
+  "num_texts": 103282,
+  "num_tokens": 29172217,
+  "num_params": 98591232,
+  "total_steps": 6764,
+  "batch_size": 8,
+  "seq_len": 1024,
+  "epochs": 2,
+  "lr": 0.0005,
+  "val_ppl": 5.0,
+  "train_time_min": 68.1,
+  "data_path": "data/exp/full_80_20_rw.jsonl",
+  "experiment": "E2_mix_rwwiki_29M_2ep",
+  "description": "Mixed 80/20 29M tokens",
+  "num_loss_points": 145
+}

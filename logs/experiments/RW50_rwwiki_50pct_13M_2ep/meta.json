@@ -1,0 +1,16 @@
+{
+  "num_texts": 42671,
+  "num_tokens": 13160688,
+  "num_params": 98591232,
+  "total_steps": 3052,
+  "batch_size": 8,
+  "seq_len": 1024,
+  "epochs": 2,
+  "lr": 0.0005,
+  "val_ppl": 10.0,
+  "train_time_min": 30.7,
+  "data_path": "data/mixed/ratio_50_50_rw.jsonl",
+  "experiment": "RW50_rwwiki_50pct_13M_2ep",
+  "description": "Distill + rewritten Wiki 50/50",
+  "num_loss_points": 71
+}

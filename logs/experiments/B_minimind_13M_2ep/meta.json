@@ -1,0 +1,16 @@
+{
+  "num_texts": 62643,
+  "num_tokens": 13349945,
+  "num_params": 98591232,
+  "total_steps": 3096,
+  "batch_size": 8,
+  "seq_len": 1024,
+  "epochs": 2,
+  "lr": 0.0005,
+  "val_ppl": 11.0,
+  "train_time_min": 31.1,
+  "data_path": "data/minimind_sampled.jsonl",
+  "experiment": "B_minimind_13M_2ep",
+  "description": "MiniMind equal-token comparison",
+  "num_loss_points": 71
+}

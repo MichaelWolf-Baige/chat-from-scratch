@@ -15,14 +15,18 @@ from src.model.transformer import Transformer
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--checkpoint", required=True, help="Checkpoint .pt file")
+    parser.add_argument("--d_model", type=int, default=512); parser.add_argument("--n_layers", type=int, default=24)
+    parser.add_argument("--n_heads", type=int, default=8); parser.add_argument("--n_kv_heads", type=int, default=4)
+    parser.add_argument("--d_ff", type=int, default=2048)
     args = parser.parse_args()
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device} | Checkpoint: {args.checkpoint}")
 
     tok = Tokenizer.from_file("tokenizers/phase1_8k_real/tokenizer.json")
-    cfg = ModelConfig(vocab_size=8192, d_model=512, n_layers=24, n_heads=8, n_kv_heads=4,
-                      d_ff=2048, max_seq_len=1024, rope_theta=100000.0, dropout=0.0,
+    cfg = ModelConfig(vocab_size=8192, d_model=args.d_model, n_layers=args.n_layers,
+                      n_heads=args.n_heads, n_kv_heads=args.n_kv_heads,
+                      d_ff=args.d_ff, max_seq_len=1024, rope_theta=100000.0, dropout=0.0,
                       use_flash_attention=(device.type=="cuda"), tie_word_embeddings=True,
                       rms_norm_eps=1e-6, use_qk_norm=True,
                       pad_token_id=0, bos_token_id=1, eos_token_id=2)

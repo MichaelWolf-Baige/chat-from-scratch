@@ -1,0 +1,16 @@
+{
+  "num_texts": 87395,
+  "num_tokens": 23337509,
+  "num_params": 98591232,
+  "total_steps": 5412,
+  "batch_size": 8,
+  "seq_len": 1024,
+  "epochs": 2,
+  "lr": 0.0005,
+  "val_ppl": 5.0,
+  "train_time_min": 53.8,
+  "data_path": "data/exp/full_distill.jsonl",
+  "experiment": "E1_pure_distill_23M_2ep",
+  "description": "Pure distill full 23M tokens",
+  "num_loss_points": 118
+}

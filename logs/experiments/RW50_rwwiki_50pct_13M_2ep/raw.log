@@ -1,0 +1,83 @@
+
+=======================================================
+SINGLE-GPU TRAINING: data/mixed/ratio_50_50_rw.jsonl
+  42,671 texts → 13,160,688 tokens
+=======================================================
+  98,591,232 params | 3052 steps | bs=8x1024 | 2 epochs | LR=0.0005
+  step     1/3052 | loss=9.1360 ppl=9283 | 4K tok/s
+  step     2/3052 | loss=8.7981 ppl=6622 | 7K tok/s
+  step     3/3052 | loss=8.8690 ppl=7108 | 8K tok/s
+  step     4/3052 | loss=8.7630 ppl=6394 | 9K tok/s
+  step     5/3052 | loss=8.7822 ppl=6517 | 10K tok/s
+  step     6/3052 | loss=8.8199 ppl=6767 | 10K tok/s
+  step     7/3052 | loss=8.6708 ppl=5830 | 10K tok/s
+  step     8/3052 | loss=8.6158 ppl=5518 | 11K tok/s
+  step     9/3052 | loss=8.5840 ppl=5346 | 11K tok/s
+  step    10/3052 | loss=8.5317 ppl=5073 | 11K tok/s
+  step    50/3052 | loss=7.7093 ppl=2229 | 13K tok/s
+  step   100/3052 | loss=6.9105 ppl=1003 | 14K tok/s
+  step   150/3052 | loss=6.4875 ppl=657 | 14K tok/s
+  step   200/3052 | loss=5.9186 ppl=372 | 14K tok/s
+  step   250/3052 | loss=5.6345 ppl=280 | 14K tok/s
+  step   300/3052 | loss=5.0319 ppl=153 | 14K tok/s
+  step   350/3052 | loss=4.8688 ppl=130 | 14K tok/s
+  step   400/3052 | loss=4.4771 ppl=88 | 14K tok/s
+  step   450/3052 | loss=4.2386 ppl=69 | 14K tok/s
+  step   500/3052 | loss=4.0801 ppl=59 | 14K tok/s
+  step   550/3052 | loss=4.0371 ppl=57 | 14K tok/s
+  step   600/3052 | loss=3.7240 ppl=41 | 14K tok/s
+  step   650/3052 | loss=3.3942 ppl=30 | 14K tok/s
+  step   700/3052 | loss=3.9950 ppl=54 | 14K tok/s
+  step   750/3052 | loss=3.7485 ppl=42 | 14K tok/s
+  step   800/3052 | loss=3.2222 ppl=25 | 14K tok/s
+  step   850/3052 | loss=3.4060 ppl=30 | 14K tok/s
+  step   900/3052 | loss=3.2952 ppl=27 | 14K tok/s
+  step   950/3052 | loss=3.4986 ppl=33 | 14K tok/s
+  step  1000/3052 | loss=3.2539 ppl=26 | 14K tok/s
+  step  1050/3052 | loss=3.0553 ppl=21 | 14K tok/s
+  step  1100/3052 | loss=3.1754 ppl=24 | 14K tok/s
+  step  1150/3052 | loss=3.0292 ppl=21 | 14K tok/s
+  step  1200/3052 | loss=3.1252 ppl=23 | 14K tok/s
+  step  1250/3052 | loss=2.9131 ppl=18 | 14K tok/s
+  step  1300/3052 | loss=3.0662 ppl=21 | 14K tok/s
+  step  1350/3052 | loss=2.9474 ppl=19 | 14K tok/s
+  step  1400/3052 | loss=2.7278 ppl=15 | 14K tok/s
+  step  1450/3052 | loss=2.7026 ppl=15 | 14K tok/s
+  step  1500/3052 | loss=2.8655 ppl=18 | 14K tok/s
+  step  1550/3052 | loss=2.7239 ppl=15 | 14K tok/s
+  step  1600/3052 | loss=2.4244 ppl=11 | 14K tok/s
+  step  1650/3052 | loss=2.5942 ppl=13 | 14K tok/s
+  step  1700/3052 | loss=2.6249 ppl=14 | 14K tok/s
+  step  1750/3052 | loss=2.7299 ppl=15 | 14K tok/s
+  step  1800/3052 | loss=2.7257 ppl=15 | 14K tok/s
+  step  1850/3052 | loss=2.6495 ppl=14 | 14K tok/s
+  step  1900/3052 | loss=2.7227 ppl=15 | 14K tok/s
+  step  1950/3052 | loss=2.4084 ppl=11 | 14K tok/s
+  step  2000/3052 | loss=2.8088 ppl=17 | 14K tok/s
+  step  2050/3052 | loss=2.6022 ppl=13 | 14K tok/s
+  step  2100/3052 | loss=2.5638 ppl=13 | 14K tok/s
+  step  2150/3052 | loss=2.4148 ppl=11 | 14K tok/s
+  step  2200/3052 | loss=2.5856 ppl=13 | 14K tok/s
+  step  2250/3052 | loss=2.7315 ppl=15 | 14K tok/s
+  step  2300/3052 | loss=2.2336 ppl=9 | 14K tok/s
+  step  2350/3052 | loss=2.6166 ppl=14 | 14K tok/s
+  step  2400/3052 | loss=2.5797 ppl=13 | 14K tok/s
+  step  2450/3052 | loss=2.5975 ppl=13 | 14K tok/s
+  step  2500/3052 | loss=2.6997 ppl=15 | 14K tok/s
+  step  2550/3052 | loss=2.2482 ppl=9 | 14K tok/s
+  step  2600/3052 | loss=2.4433 ppl=12 | 14K tok/s
+  step  2650/3052 | loss=2.1966 ppl=9 | 14K tok/s
+  step  2700/3052 | loss=2.6254 ppl=14 | 14K tok/s
+  step  2750/3052 | loss=2.3998 ppl=11 | 14K tok/s
+  step  2800/3052 | loss=2.3871 ppl=11 | 14K tok/s
+  step  2850/3052 | loss=2.2571 ppl=10 | 14K tok/s
+  step  2900/3052 | loss=2.4414 ppl=11 | 14K tok/s
+  step  2950/3052 | loss=2.3455 ppl=10 | 14K tok/s
+  step  3000/3052 | loss=2.4348 ppl=11 | 14K tok/s
+  step  3050/3052 | loss=2.2106 ppl=9 | 14K tok/s
+
+=======================================================
+DONE: checkpoints/mix_50_50_rw.pt
+  VAL PPL: 10 | 30.7min | 14K tok/s
+  Checkpoint: checkpoints/mix_50_50_rw.pt (0.4GB)
+=======================================================
