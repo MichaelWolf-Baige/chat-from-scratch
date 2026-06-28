@@ -109,15 +109,26 @@ ssh school  # 已配好 KexAlgorithms 兼容
 
 ## 下一步
 
-基于 12 次实验的核心结论：**PPL=5 是当前 Teacher（Qwen2.5-1.5B）的天花板。**
-瓶颈不是模型大小也不是数据组合，是 Teacher 模型的知识边界。
+### 立即：等服务器上的实验完成
+- GPU 0: Deep-Thin (d=576 L=30 111M) 训练中
+- GPU 1/3: Shallow-Wide / Extreme Wide 重跑中
+- GPU 2: Extreme Deep (d=512 L=36 117M) 训练中
+- GPU 7: Mid (d=768 L=28 188M) 训练中
 
-两个可突破方向：
+### 容量测试已有结论
+- C50 (50M Wiki): PPL=23 | C100 (100M Wiki): PPL=18
+- **"100M 容量地板"被证伪**——数据翻倍 PPL 降 18.5%
+- C200 需重跑（save OOM 已修复）
 
+### 突破方向
 | 路线 | 做法 | 预期 |
 |------|------|------|
-| **A. 扩 prompt 蒸馏** | 当前 8 领域→14 领域，几何级扩大 prompt 覆盖面 | 突破 PPL=5 天花板 |
-| **B. 升级 Teacher** | 用 Qwen2.5-7B 或开源 7B+ 模型做蒸馏 | 知识准度跃升，事实错误减少 |
+| **A. 更多数据** | 继续给 100M 灌更多数据 | PPL 持续下降 |
+| **B. 扩 prompt 蒸馏** | 当前 8→14 领域 | 单条数据价值提升 |
+| **C. 升级 Teacher** | Qwen2.5-7B 或更大 | 知识准度跃升 |
+
+### ⚠️ Save OOM 修复
+`train_single.py` 已增加 `cpu().clone() + empty_cache()` 防 save 阶段崩溃
 
 ## 不做的
 

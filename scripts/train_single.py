@@ -93,9 +93,11 @@ def main():
             vb = val_t[i:i+bs].to(device); _, eo = model(vb, labels=vb); et.append(eo["loss"].item())
     val_ppl = np.exp(np.mean(et)); elapsed = time.time()-t0
 
-    # ── Save ──
+    # ── Save ── (move to CPU first to avoid OOM during serialization)
     ckpt_path = Path(args.output); ckpt_path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"model":model.state_dict(),"val_ppl":float(val_ppl),"steps":gs,"data":args.data}, ckpt_path)
+    torch.cuda.empty_cache()
+    state_dict = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+    torch.save({"model": state_dict, "val_ppl": float(val_ppl), "steps": gs, "data": args.data}, ckpt_path)
 
     print(f"\n{'='*55}\nDONE: {args.output}")
     print(f"  VAL PPL: {val_ppl:.0f} | {elapsed/60:.1f}min | {gs*bs*sl/elapsed/1000:.0f}K tok/s")
