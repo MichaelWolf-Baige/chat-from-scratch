@@ -1,200 +1,299 @@
 #!/usr/bin/env python
-"""Evaluation benchmark: 50 Chinese prompts across 4 dimensions.
+"""综合 Benchmark 评估脚本
 
-Usage:
-    python scripts/eval_benchmark.py
-Output: eval_results.json — model responses + scoring template
+功能：
+  1. 加载多个 checkpoint
+  2. 对 3 种 prompt 格式（续写/对话/聊天）分别评估
+  3. 支持多组解码参数 sweep
+  4. 输出结构化 JSON 结果
+
+用法:
+    # 评估单个 checkpoint
+    python scripts/eval_benchmark.py -c checkpoints/p3_ours.pt
+
+    # 评估多个 checkpoint，多组解码参数
+    python scripts/eval_benchmark.py -c ckpt1.pt ckpt2.pt --sweep
+
+    # 只评估特定 benchmark
+    python scripts/eval_benchmark.py -c ckpt1.pt --benchmarks completion dialogue
 """
-import sys
+
+import sys, os, argparse, json, time
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-import torch, json, time
+from datetime import datetime
+
+# 项目根目录
+_SCRIPT_PATH = Path(os.path.abspath(__file__)) if '__file__' in globals() else Path(os.getcwd())
+PROJ_ROOT = _SCRIPT_PATH.parent.parent
+sys.path.insert(0, str(PROJ_ROOT))
+
+import torch
 from tokenizers import Tokenizer
 from src.model.config import ModelConfig
 from src.model.transformer import Transformer
 
-# ── 50 prompts across 4 dimensions ──
-BENCHMARK = {
-    "chitchat": [
-        "你好！",
-        "今天天气真好",
-        "谢谢你帮我",
-        "再见，下次聊",
-        "最近过得怎么样？",
-        "我心情不太好",
-        "晚安",
-        "你叫什么名字？",
-        "我觉得今天很幸运",
-        "好久不见，你还好吗？",
-    ],
-    "knowledge_qa": [
-        "什么是机器学习？",
-        "Python是什么语言？",
-        "中国的首都是哪里？",
-        "地球绕太阳转一圈要多久？",
-        "水的化学式是什么？",
-        "世界上最高的山是哪座？",
-        "什么是人工智能？",
-        "计算机网络的IP地址是什么意思？",
-        "李白是谁？",
-        "太阳系有几大行星？",
-        "什么是数据库？",
-        "物理学是研究什么的？",
-        "互联网是如何工作的？",
-        "英语里的past tense是什么意思？",
-        "人体正常体温是多少？",
-    ],
-    "instruction": [
-        "请把'你好世界'翻译成英文",
-        "帮我数一下从1到10",
-        "请列出三种常见的水果",
-        "今天北京的天气怎么样？（假设你不知道，如实说）",
-        "帮我写一封简短的道歉信",
-        "请用'春天'造一个句子",
-        "告诉我怎么煮鸡蛋",
-        "推荐三本适合小学生看的书",
-        "帮我计算 15 + 27",
-        "解释一下什么叫'节约用水'",
-    ],
-    "multiturn": [
-        # Turn 1
-        "我最近想学一门新的编程语言，你有什么建议吗？",
-        # Turn 2 (depends on turn 1)
-        "那你说的这个语言有什么优点呢？",
-        # Turn 1
-        "帮我推荐一个好玩的游戏",
-        # Turn 2
-        "这个游戏适合小学生玩吗？",
-        # Turn 1
-        "我明天要去面试，好紧张",
-        # Turn 2
-        "你说的对，那我应该准备哪些问题呢？",
-    ],
+# ─── 架构参数表 ─────────────────────────────────────────
+ARCH_CONFIGS = {
+    "100M":       dict(d_model=512,  n_layers=24, n_heads=8,  n_kv_heads=4,  d_ff=2048),
+    "deep_thin":  dict(d_model=576,  n_layers=30, n_heads=9,  n_kv_heads=3,  d_ff=1536),
+    "shallow_wide": dict(d_model=768,  n_layers=16, n_heads=12, n_kv_heads=4,  d_ff=2304),
+    "extreme_deep": dict(d_model=512,  n_layers=36, n_heads=8,  n_kv_heads=4,  d_ff=1536),
+    "extreme_wide": dict(d_model=896,  n_layers=12, n_heads=14, n_kv_heads=7,  d_ff=2560),
+    "mid_188M":   dict(d_model=768,  n_layers=28, n_heads=12, n_kv_heads=6,  d_ff=2048),
+    "deep_193M":  dict(d_model=512,  n_layers=48, n_heads=8,  n_kv_heads=4,  d_ff=2048),
+    "wide_207M":  dict(d_model=1024, n_layers=14, n_heads=16, n_kv_heads=8,  d_ff=3584),
 }
 
-SCORING_GUIDE = """
-评分标准 (1-3分):
-  1 = 完全不相关 / 语法错误 / 答非所问
-  2 = 基本合理但生硬 / 模板化 / 过于简短
-  3 = 自然流畅 / 内容相关 / 表达得体
+# ─── 解码参数预设 ───────────────────────────────────────
+DECODING_PRESETS = {
+    "default":     dict(temperature=0.8, top_k=35, top_p=0.9),
+    "creative":    dict(temperature=1.2, top_k=50, top_p=0.95),
+    "conservative": dict(temperature=0.4, top_k=20, top_p=0.8),
+    "deterministic": dict(temperature=0.01, top_k=1, top_p=1.0),
+}
 
-请对每个回答评分。
-"""
+# ─── Prompt 格式处理 ────────────────────────────────────
+def format_prompt(raw_prompt: str, fmt: str) -> str:
+    """根据格式类型处理 prompt。"""
+    if fmt == "completion":
+        return raw_prompt
+    elif fmt == "dialogue":
+        return raw_prompt
+    elif fmt == "chat":
+        return raw_prompt
+    else:
+        return raw_prompt
 
 
-def load_model(checkpoint_path="saved_models/sft_v2_final.pt", tokenizer_path="saved_models/tokenizers/phase1_8k_real_tokenizer.json"):
-    """Load trained SFT model."""
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    tok = Tokenizer.from_file(tokenizer_path)
+def load_benchmark(benchmark_dir: Path, name: str) -> list[dict]:
+    """加载 benchmark JSON 文件，返回 prompt 列表。"""
+    path = benchmark_dir / f"{name}.json"
+    if not path.exists():
+        print(f"  ⚠ Benchmark 文件不存在: {path}")
+        return []
+    with open(path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    print(f"  ✓ {name}: {len(data)} prompts")
+    return data
+
+
+def load_model(checkpoint_path: str, arch_name: str, device: torch.device):
+    """加载 checkpoint 并返回 model, tokenizer, metadata。"""
+    ckpt_path = Path(checkpoint_path)
+    if not ckpt_path.exists():
+        raise FileNotFoundError(f"Checkpoint 不存在: {checkpoint_path}")
+
+    tok_path = PROJ_ROOT / "tokenizers" / "phase1_8k_real" / "tokenizer.json"
+    tok = Tokenizer.from_file(str(tok_path))
+
+    ckpt = torch.load(str(ckpt_path), map_location=device, weights_only=False)
+
+    arch = ARCH_CONFIGS.get(arch_name, ARCH_CONFIGS["100M"])
+
     cfg = ModelConfig(
-        vocab_size=8192, d_model=384, n_layers=6, n_heads=6, n_kv_heads=6,
-        d_ff=1024, max_seq_len=512, dropout=0.0,
+        vocab_size=8192,
+        d_model=arch["d_model"],
+        n_layers=arch["n_layers"],
+        n_heads=arch["n_heads"],
+        n_kv_heads=arch["n_kv_heads"],
+        d_ff=arch["d_ff"],
+        max_seq_len=1024,
+        rope_theta=100000.0,
+        dropout=0.0,
         use_flash_attention=(device.type == "cuda"),
-        tie_word_embeddings=True, rms_norm_eps=1e-6,
-        pad_token_id=0, bos_token_id=1, eos_token_id=2,
+        tie_word_embeddings=True,
+        rms_norm_eps=1e-6,
+        use_qk_norm=True,
+        pad_token_id=0,
+        bos_token_id=1,
+        eos_token_id=2,
     )
-    model = Transformer(cfg)
-    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    model = Transformer(cfg).to(device)
     model.load_state_dict(ckpt["model"])
-    model = model.to(device)
     model.eval()
-    return model, tok, device
+
+    param_count = sum(p.numel() for p in model.parameters())
+    val_ppl = ckpt.get("val_ppl", "N/A")
+    steps = ckpt.get("steps", "N/A")
+
+    return model, tok, {
+        "path": str(ckpt_path),
+        "name": ckpt_path.stem,
+        "arch": arch_name,
+        "params": param_count,
+        "val_ppl": val_ppl,
+        "steps": steps,
+    }
 
 
-def generate_response(model, tok, device, prompt, max_tokens=80):
-    """Generate a response for a single prompt."""
-    text = f"用户：{prompt}\n助手："
-    ids = [1] + tok.encode(text).ids
-    pid = torch.tensor([ids], device=device)
-    tokens = []
-    with torch.no_grad():
-        for token_id, is_done in model.generate_stream(
-            pid, max_new_tokens=max_tokens, temperature=0.8,
-            top_k=35, top_p=0.9, eos_token_id=2
+def run_generation(model, tok, prompt: str, decoding: dict, device: torch.device) -> tuple[str, int]:
+    """对单个 prompt 生成回答，返回 (text, token_count)。"""
+    ids = tok.encode(prompt).ids
+    input_ids = torch.tensor([[1] + ids], device=device)
+
+    out_tokens = []
+    try:
+        for tid, is_done in model.generate_stream(
+            input_ids,
+            max_new_tokens=80,
+            temperature=decoding["temperature"],
+            top_k=decoding["top_k"],
+            top_p=decoding["top_p"],
+            eos_token_id=2,
         ):
-            tokens.append(token_id)
+            out_tokens.append(tid)
             if is_done:
                 break
-    return tok.decode(tokens, skip_special_tokens=True)
+    except Exception as e:
+        return f"[ERROR: {e}]", 0
+
+    resp = tok.decode(out_tokens, skip_special_tokens=True)
+    return resp, len(out_tokens)
+
+
+def evaluate_checkpoint(model, tok, meta: dict, benchmarks: dict,
+                        decoding_presets: dict, device: torch.device) -> list[dict]:
+    """对单个 checkpoint 跑完所有 benchmark × 所有解码参数。"""
+    results = []
+    ckpt_name = meta["name"]
+
+    for bench_name, prompts in benchmarks.items():
+        if not prompts:
+            continue
+        fmt = bench_name
+
+        for preset_name, decoding in decoding_presets.items():
+            run_id = f"{ckpt_name}|{bench_name}|{preset_name}"
+            print(f"  [{run_id}] ", end="", flush=True)
+
+            run_results = {
+                "checkpoint": meta,
+                "benchmark": bench_name,
+                "decoding": preset_name,
+                "decoding_params": decoding,
+                "generations": [],
+                "error": None,
+            }
+
+            t0 = time.time()
+            try:
+                for item in prompts:
+                    raw_prompt = item["prompt"]
+                    prompt_formatted = format_prompt(raw_prompt, fmt)
+                    gen_text, n_tokens = run_generation(model, tok, prompt_formatted, decoding, device)
+
+                    run_results["generations"].append({
+                        "id": item["id"],
+                        "category": item.get("category", ""),
+                        "prompt": raw_prompt,
+                        "prompt_formatted": prompt_formatted,
+                        "generation": gen_text,
+                        "tokens": n_tokens,
+                    })
+
+                elapsed = time.time() - t0
+                n_prompts = len(prompts)
+                print(f"{n_prompts} prompts in {elapsed:.1f}s ({elapsed/n_prompts:.2f}s/prompt)")
+
+            except Exception as e:
+                elapsed = time.time() - t0
+                run_results["error"] = str(e)
+                print(f"ERROR after {elapsed:.1f}s: {e}")
+                torch.cuda.empty_cache()
+
+            results.append(run_results)
+
+    return results
 
 
 def main():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--checkpoint", default="saved_models/sft_v2_final.pt")
-    parser.add_argument("--output", default="eval_results.json")
+    parser = argparse.ArgumentParser(description="综合 Benchmark 评估")
+    parser.add_argument("-c", "--checkpoints", nargs="+", required=True,
+                        help="Checkpoint 文件路径")
+    parser.add_argument("--arch", default="100M",
+                        help="架构名称")
+    parser.add_argument("--benchmarks", nargs="+", default=["completion", "dialogue", "chat"],
+                        help="要跑的 benchmark: completion, dialogue, chat")
+    parser.add_argument("--decoding", nargs="+", default=["default", "creative", "conservative"],
+                        help="解码参数预设")
+    parser.add_argument("--sweep", action="store_true",
+                        help="跑全部 4 组解码参数")
+    parser.add_argument("-o", "--output", default=None,
+                        help="输出 JSON 文件路径")
+    parser.add_argument("--benchmark-dir", default=None,
+                        help="Benchmark 文件目录")
+    parser.add_argument("--device", default=None,
+                        help="设备 (cuda:0 / cpu)")
     args = parser.parse_args()
 
-    print("Loading model...")
-    model, tok, device = load_model(args.checkpoint)
-    print(f"Model loaded on {device}")
-    print(f"Params: {sum(p.numel() for p in model.parameters()):,}")
+    if args.device:
+        device = torch.device(args.device)
+    else:
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f"Device: {device}")
 
-    results = {}
-    total = sum(len(v) for v in BENCHMARK.values())
-    i = 0
+    if args.benchmark_dir:
+        benchmark_dir = Path(args.benchmark_dir)
+    else:
+        benchmark_dir = PROJ_ROOT / "data" / "benchmark"
+    print(f"Benchmark dir: {benchmark_dir}")
 
-    print(f"\nRunning {total} evaluations...")
-    t0 = time.time()
+    if args.sweep:
+        presets = DECODING_PRESETS
+    else:
+        presets = {k: DECODING_PRESETS[k] for k in args.decoding if k in DECODING_PRESETS}
+    print(f"Decoding presets: {list(presets.keys())}")
 
-    multiturn_context = {}
+    print("\n─── 加载 Benchmark ───")
+    benchmarks = {}
+    for name in args.benchmarks:
+        benchmarks[name] = load_benchmark(benchmark_dir, name)
 
-    for category, prompts in BENCHMARK.items():
-        print(f"\n--- {category} ({len(prompts)} prompts) ---")
-        results[category] = []
+    all_results = []
+    for ckpt_path in args.checkpoints:
+        print(f"\n─── 评估: {ckpt_path} ───")
+        try:
+            model, tok, meta = load_model(ckpt_path, args.arch, device)
+            print(f"  参数: {meta['params']:,} | PPL: {meta['val_ppl']} | Steps: {meta['steps']}")
 
-        for prompt in prompts:
-            # For multiturn, accumulate context
-            if category == "multiturn":
-                # Even indices are turn-1, odd indices are turn-2
-                idx = len(results[category])
-                if idx % 2 == 0:
-                    # New conversation starts
-                    context = f"用户：{prompt}\n助手："
-                    response = generate_response(model, tok, device, prompt)
-                    multiturn_context[prompt] = response
-                else:
-                    # Continue previous conversation
-                    prev_prompt = prompts[idx - 1]
-                    prev_response = multiturn_context.get(prev_prompt, "")
-                    context = f"用户：{prev_prompt}\n助手：{prev_response}\n用户：{prompt}\n助手："
-                    response = generate_response(model, tok, device,
-                                                  f"{prev_prompt}\n助手：{prev_response}\n用户：{prompt}")
-            else:
-                response = generate_response(model, tok, device, prompt)
+            results = evaluate_checkpoint(model, tok, meta, benchmarks, presets, device)
+            all_results.extend(results)
 
-            i += 1
-            elapsed = time.time() - t0
-            print(f"  [{i}/{total}] {prompt[:40]}... -> {response[:60]}... "
-                  f"({elapsed/i:.1f}s/q)")
+            del model
+            torch.cuda.empty_cache()
 
-            results[category].append({
-                "prompt": prompt,
-                "response": response,
-                "score": None,  # to be filled by human evaluator
-                "notes": "",
-            })
+        except Exception as e:
+            print(f"  ❌ 加载失败: {e}")
+            continue
 
-    # ── Save results ──
-    output = {
-        "model": args.checkpoint,
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "scoring_guide": SCORING_GUIDE.strip(),
-        "n_total": total,
-        "avg_time_per_query": (time.time() - t0) / total,
-        "results": results,
-    }
+    if args.output:
+        output_path = Path(args.output)
+    else:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = PROJ_ROOT / "logs" / "benchmarks" / f"benchmark_{timestamp}.json"
 
-    with open(args.output, "w", encoding="utf-8") as f:
-        json.dump(output, f, ensure_ascii=False, indent=2)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(all_results, f, indent=2, ensure_ascii=False)
 
-    print(f"\n{'='*55}")
-    print(f"Evaluation complete!")
-    print(f"  Total: {total} queries in {time.time()-t0:.0f}s")
-    print(f"  Saved to: {args.output}")
-    print(f"\nNext step: open {args.output} and fill in 'score' (1-3)")
-    print(f"  Then run: python scripts/eval_scorer.py")
-    print(f"{'='*55}")
+    print(f"\n{'='*60}")
+    print(f"✅ 评估完成")
+    print(f"   Checkpoints: {len(args.checkpoints)}")
+    print(f"   Benchmarks:  {len(benchmarks)} × {sum(len(b) for b in benchmarks.values())} prompts")
+    print(f"   Decodings:   {len(presets)}")
+    print(f"   总运行次数:  {len(all_results)}")
+    print(f"   结果保存到:  {output_path}")
+
+    print(f"\n─── 快速摘要 ───")
+    for run in all_results:
+        ckpt_name = run["checkpoint"]["name"]
+        bench = run["benchmark"]
+        dec = run["decoding"]
+        gens = run["generations"]
+        avg_tokens = sum(g["tokens"] for g in gens) / max(len(gens), 1)
+        first_gen = gens[0]["generation"][:80] if gens else "N/A"
+        print(f"  [{ckpt_name}] {bench}/{dec}: avg_tokens={avg_tokens:.0f}")
+        print(f"    示例: {gens[0]['prompt'][:30]} → {first_gen}...")
 
 
 if __name__ == "__main__":
