@@ -1,0 +1,18 @@
+[
+  {"id": "fact_01", "category": "事实知识", "prompt": "中国的首都是"},
+  {"id": "fact_02", "category": "事实知识", "prompt": "水的化学式是"},
+  {"id": "fact_03", "category": "事实知识", "prompt": "光速约为每秒"},
+  {"id": "fact_04", "category": "事实知识", "prompt": "地球围绕太阳公转一周大约需要"},
+  {"id": "fact_05", "category": "事实知识", "prompt": "人体最大的器官是"},
+  {"id": "fact_06", "category": "事实知识", "prompt": "世界上人口最多的国家是"},
+  {"id": "fact_07", "category": "事实知识", "prompt": "太阳系中最大的行星是"},
+  {"id": "tech_01", "category": "技术概念", "prompt": "Python是一种"},
+  {"id": "tech_02", "category": "技术概念", "prompt": "Transformer模型的核心机制是"},
+  {"id": "tech_03", "category": "技术概念", "prompt": "深度学习是人工智能的一个分支，它"},
+  {"id": "tech_04", "category": "技术概念", "prompt": "GPU相比CPU在计算上的优势是"},
+  {"id": "tech_05", "category": "技术概念", "prompt": "HTTP协议的全称是"},
+  {"id": "general_01", "category": "常识续写", "prompt": "春天来了，万物"},
+  {"id": "general_02", "category": "常识续写", "prompt": "太阳从东边升起，"},
+  {"id": "general_03", "category": "常识续写", "prompt": "学习编程需要"},
+  {"id": "general_04", "category": "常识续写", "prompt": "保持健康的身体需要"}
+]
