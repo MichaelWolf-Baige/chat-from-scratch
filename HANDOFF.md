@@ -1,7 +1,7 @@
 # 新对话接手文档
 
 > 项目：chat-from-scratch — 100M 中文预训练模型从零训练
-> 最后更新：2026-06-28 20:00
+> 最后更新：2026-06-29 23:00
 > GitHub：https://github.com/MichaelWolf-Baige/chat-from-scratch
 
 ---
@@ -12,39 +12,30 @@
 ssh school  # 别名已配好（10.1.36.65, user: b23113_）
 ```
 
-SSH 可能断开，但服务器上进程自存活。断开后重连即可。
-
 **环境激活**：
 ```bash
 source ~/miniconda3/etc/profile.d/conda.sh && conda activate minimind
 ```
 
-**GPU**：9× RTX 3090 (24GB)，0/2/7 占用中，其余空闲。`nvidia-smi` 查看状态。
+**GPU**：9× RTX 3090 (24GB)，全部空闲。
 
 ---
 
-## 二、当前在跑实验（服务器上）
+## 二、项目状态总览
 
-运行时间统计截止 19:50，后续检查 checkpoint 确认是否完成：
+### 当前阶段
 
-| GPU | 实验名 | 架构 | 数据 | 预计 | 确认方式 |
-|-----|--------|------|------|------|---------|
-| 0 | Deep-Thin | d=576 L=30 111M | Wiki 100M | 超时 | `ls checkpoints/arch_deep_thin.pt` |
-| 1 | Shallow-Wide | d=768 L=16 116M | Wiki 100M | 重跑中 | `ls checkpoints/arch_shallow_wide.pt` |
-| 2 | Extreme Deep | d=512 L=36 117M | Wiki 100M | 超时 | `ls checkpoints/arch_extreme_deep.pt` |
-| 3 | Extreme Wide | d=896 L=12 119M | Wiki 100M | 重跑中 | `ls checkpoints/arch_extreme_wide.pt` |
-| 7 | Mid | d=768 L=28 188M | Wiki 100M | 超时 | `ls checkpoints/arch_mid_d768L28.pt` |
-| 6 | C200 | 100M基线 | Wiki 200M | ❌崩了 | **需重跑** |
-| 4,5 | 空闲 | — | — | — | 随时可用 |
+预训练阶段基本完成。**发现**：
+- p3_ours (蒸馏数据, PPL=5) 生成质量良好，在对话式和续写式下均有合理输出
+- Wiki 训练的模型（PPL=19）生成全是垃圾——格式不匹配导致
+- 预训练 → SFT 的转换是下一步关键
 
-**查实验结果**：
-```bash
-ssh school "source ~/miniconda3/etc/profile.d/conda.sh && conda activate minimind && python -c \"
-import torch
-ckpt = torch.load('/wuzhou/pentafleet/b23113_/chat-from-scratch/checkpoints/<文件名>.pt', map_location='cpu', weights_only=False)
-print(f'VAL PPL: {ckpt[\"val_ppl\"]} | Steps: {ckpt[\"steps\"]} | Data: {ckpt[\"data\"]}')
-\""
-```
+### 近期重大发现（2026-06-29 session）
+
+1. **模板崩塌是误判**：test_results.json 的 Mad Libs 是因为用了裸聊天 prompt，模型训练数据是"A:...\n\nB:..."格式。换对话式/续写式 prompt 后正常。
+2. **蒸馏数据非常健康**：Simpson 多样性 = 1.0，87K 条几乎每条独特，不存在模板化。
+3. **架构消融（Wiki 数据）无效**：所有架构变体 PPL 挤在 18-19，生成全是垃圾。架构实验需要在蒸馏数据上重跑才有效。
+4. **纯 Wiki 预训练对对话生成完全无效**：Wiki 100M tokens 无法让 100M 模型学会对话。
 
 ---
 
@@ -57,53 +48,41 @@ print(f'VAL PPL: {ckpt[\"val_ppl\"]} | Steps: {ckpt[\"steps\"]} | Data: {ckpt[\"
 | C1 | 蒸馏对照 | 100M | 13M tok | 100% | 2 | **5** | 混合 |
 | C2 | +原始Wiki | 100M | 13M tok | 80/20 | 2 | **8** | 混合 |
 | C3 | +原始Wiki | 100M | 13M tok | 60/40 | 2 | **12** | 混合 |
-| RW-20 | +改写Wiki | 100M | 13M tok | 80/20 | 2 | **6.8** | 混合 |
-| RW-40 | +改写Wiki | 100M | 13M tok | 60/40 | 2 | **9** | 混合 |
-| RW-50 | +改写Wiki | 100M | 13M tok | 50/50 | 2 | **10** | 混合 |
-| E1 | 蒸馏放大 | 100M | 23M tok | 100% | 2 | **5** | 缩放 |
-| E2 | 混合放大 | 100M | 29M tok | 80/20rw | 2 | **5** 🔥 | 缩放 |
-| E3 | 蒸馏多轮 | 100M | 13M tok | 100% | **8** | **6** ⚠️ | 缩放 |
-| E4 | 混合多轮 | 100M | 13M tok | 80/20rw | **8** | **8** ⚠️ | 缩放 |
-| S1 | Deep Narrow | d=512 L=48 193M | 23M tok | 100% | 2 | **4** | 架构 |
-| S2 | Wide Shallow | d=1024 L=14 207M | 23M tok | 100% | 2 | **4** | 架构 |
+| RW-20~50 | +改写Wiki | 100M | 13M tok | 80/20~50/50 | 2 | 6.8~10 | 混合 |
+| E1-E4 | 缩放/多轮 | 100M | 13M~29M | 混合 | 2~8 | 5~8 | 缩放 |
+| S1 | Deep Narrow | d=512 L=48 193M | 23M | 100% | 2 | **4** | 架构 |
+| S2 | Wide Shallow | d=1024 L=14 207M | 23M | 100% | 2 | **4** | 架构 |
 | C50 | 纯Wiki | 100M | 50M tok | 100% | 2 | **23** | 容量 |
-| C100 | 纯Wiki | 100M | 100M tok | 100% | 2 | **19** 🔥 | 容量 |
+| C100 | 纯Wiki | 100M | 100M tok | 100% | 2 | **19** | 容量 |
+| C200 | 纯Wiki | 100M | 200M tok | 100% | 2 | **18.4** | 容量 |
 
-**每个实验生成测试结果**：见 `docs/experiments-log.md` 逐题对比。关键生成亮点：
-- C1 蒸馏：AI 精准、常识错误（"北京是四大发明"）
-- C100 Wiki："北京是中国的首都"——第一次正确
+### 架构消融（Wiki 100M，2026-06-29 完成）
 
----
+| Checkpoint | 架构 | 参数 | Wiki PPL |
+|-----------|------|------|---------|
+| cap_wiki_100M | d=512 L=24 (基线) | 99M | 18.93 |
+| arch_deep_thin | d=576 L=30 | 111M | 19.48 |
+| arch_shallow_wide | d=768 L=16 | 116M | 19.09 |
+| arch_extreme_deep | d=512 L=36 | 117M | 19.05 |
+| arch_extreme_wide | d=896 L=12 | 119M | 18.75 |
+| arch_mid_d768L28 | d=768 L=28 | 188M | 18.13 |
 
-## 四、核心发现
+> ⚠️ 这些实验用纯 Wiki 数据，所有架构生成都是垃圾。此批实验结果价值有限。
 
-### 1. 数据质量 > 数据量
-蒸馏 PPL=5 vs MiniMind PPL=11（同 token 量）
+### Benchmark 评估结果（2026-06-29，47 题 × 3 格式 × 3 解码参数）
 
-### 2. 改写 Wiki 始终优于原始 Wiki
-验证了 Phi-4 "web rewrites" 路线
+| Checkpoint | PPL | 续写 | 对话 | 聊天 |
+|-----------|-----|------|------|------|
+| p3_ours (蒸馏) | 5.4 | ✅ 合理 | ✅ 流畅多轮 | ✅ 能直接聊 |
+| p3_minimind | 11.2 | ⚠️ 不稳定 | ⚠️ 有内容 | ⚠️ 有时偏题 |
+| cap_wiki_100M | 18.9 | ❌ 胡说 | ❌ 重复prompt | ❌ TV show 幻觉 |
+| arch_extreme_wide | 18.7 | ❌ 胡说 | ❌ 重复prompt | ❌ TV show 幻觉 |
 
-### 3. PPL=5 不是容量天花板——被数据量缩放证伪
-- 纯蒸馏：13M→23M→29M，PPL 不动（蒸馏数据饱和）
-- **纯 Wiki：50M→100M，PPL 23→19（-18.5%）**——100M 模型远未到极限
-- 200M 数据实验崩了，需重跑
-
-### 4. 架构：蒸馏场景下宽度更划算
-- S1 Deep/S2 Wide PPL 持平 (4 vs 4)，Wide 训练快 34%
-- MobileLLM "deep is better" 适用于自然文本大量训练，蒸馏数据改变了需求
-- PPL 层面宽/深等价，生成质量 Wide 略优
-
-### 5. 2 epochs 最优，多了过拟合
-- 8 epochs：PPL 5→6（纯蒸馏）、6.8→8（混合）
-- 100M 小模型数据量小时容易过拟合
-
-### 6. 所有模型共享 Teacher 天花板
-- Qwen2.5-1.5B 的"北京是四大发明"偏见被所有模型继承
-- 突破需要更强 Teacher 或 RAG 蒸馏
+核心结论：PPL 不能跨数据分布比较。蒸馏 PPL=5 vs Wiki PPL=19 的实际生成质量差距远超 5→19 这个数字。
 
 ---
 
-## 五、数据资产
+## 四、数据资产
 
 | 文件 | 路径 | 大小 |
 |------|------|------|
@@ -111,86 +90,89 @@ print(f'VAL PPL: {ckpt[\"val_ppl\"]} | Steps: {ckpt[\"steps\"]} | Data: {ckpt[\"
 | 中文维基百科 | `~/chat-from-scratch/data/wiki_zh_clean.jsonl` | 2.2GB, 1.36M条 |
 | 改写Wiki | `~/chat-from-scratch/data/wiki_rw_all.jsonl` | 25MB, 17K条 |
 | MiniMind原文 | `~/minimind-master/dataset/pretrain_t2t_mini.jsonl` | 1.2GB |
-| 纯Wiki 50M | `~/chat-from-scratch/data/pure_wiki/wiki_50M.jsonl` | 173MB |
-| 纯Wiki 100M | `~/chat-from-scratch/data/pure_wiki/wiki_100M.jsonl` | 347MB |
-| 纯Wiki 200M | `~/chat-from-scratch/data/pure_wiki/wiki_200M.jsonl` | 693MB |
-| 各种混合数据 | `~/chat-from-scratch/data/mixed/` | ~47MB each |
+| 纯Wiki 50M/100M/200M | `~/chat-from-scratch/data/pure_wiki/` | 173MB~693MB |
+| 混合数据 | `~/chat-from-scratch/data/mixed/` | ~47MB each |
 | Tokenizer | `~/chat-from-scratch/tokenizers/phase1_8k_real/tokenizer.json` | 580KB |
+| Benchmark 数据 | `data/benchmark/{completion,dialogue,chat}.json` | 47 prompts |
 
 ---
 
-## 六、关键脚本
+## 五、关键脚本
 
-| 脚本 | 用途 | 重要参数 |
-|------|------|---------|
-| `scripts/train_single.py` ⭐ | 单卡训练 | `-d DATA -o OUT -e 2 --d_model 512 --n_layers 24 --n_heads 8 --n_kv_heads 4 --d_ff 2048 -b 8` |
-| `scripts/gen_test.py` | 生成测试 | `-c CHECKPOINT --d_model 512 --n_layers 24 ...` |
-| `scripts/rewrite_wiki.py` | Wiki改写(Phi-4路线) | `--n 5000 -o OUT` |
-| `scripts/sample_minimind.py` | MiniMind等量采样 | `--target_tokens N -o OUT` |
-| `scripts/extract_logs.py` | 提取loss CSV | `python scripts/extract_logs.py` |
-| `scripts/plot_loss.py` | 画训练曲线 | `python scripts/plot_loss.py --all` |
+| 脚本 | 用途 |
+|------|------|
+| `scripts/train_single.py` ⭐ | 单卡训练 |
+| `scripts/gen_test.py` | 旧版生成测试（8 prompt，已过时） |
+| `scripts/eval_benchmark.py` ⭐🆕 | 新版综合 benchmark 评估（47 题，3 格式，4 解码预设） |
+| `scripts/analyze_benchmark.py` 🆕 | Benchmark 结果对比分析 |
+| `scripts/rewrite_wiki.py` | Wiki改写 (Phi-4路线) |
+| `scripts/sample_minimind.py` | MiniMind等量采样 |
+| `scripts/extract_logs.py` | 提取loss CSV |
+| `scripts/plot_loss.py` | 画训练曲线 |
 
-### 架构参数对照表
+### 用法示例
 
-| 模型 | 命令参数 |
-|------|---------|
-| 100M基线 | `--d_model 512 --n_layers 24 --n_heads 8 --n_kv_heads 4 --d_ff 2048` |
-| Deep-Thin 111M | `--d_model 576 --n_layers 30 --n_heads 9 --n_kv_heads 3 --d_ff 1536` |
-| Shallow-Wide 116M | `--d_model 768 --n_layers 16 --n_heads 12 --n_kv_heads 4 --d_ff 2304` |
-| Extreme Deep 117M | `--d_model 512 --n_layers 36 --n_heads 8 --n_kv_heads 4 --d_ff 1536` |
-| Extreme Wide 119M | `--d_model 896 --n_layers 12 --n_heads 14 --n_kv_heads 7 --d_ff 2560` |
-| Mid 188M | `--d_model 768 --n_layers 28 --n_heads 12 --n_kv_heads 6 --d_ff 2048` |
-| Deep 193M (S1) | `--d_model 512 --n_layers 48 --n_heads 8 --n_kv_heads 4 --d_ff 2048` |
-| Wide 207M (S2) | `--d_model 1024 --n_layers 14 --n_heads 16 --n_kv_heads 8 --d_ff 3584` |
-
----
-
-## 七、常见问题
-
-### SSH 断开导致本地 bash wrapper 报 255
-**服务器上的训练不受影响。** 重连后 `nvidia-smi` 和 `ps aux | grep train_single` 检查即可。
-
-### Save 阶段 OOM
-原因：`torch.save` 序列化时内存峰值超 24GB。**已修复**（`cpu().clone() + empty_cache()`）。新对话启动训练前确保 `train_single.py` 是最新版。
-
-### 上一个 SSH heredoc 执行报错
-SSH heredoc（`ssh school << 'EOF'`）有时不稳定。用 `ssh school "command"` 单行更可靠。
-
-### GPU 有僵尸进程
 ```bash
-ssh school "nvidia-smi --query-compute-apps=pid --format=csv,noheader | xargs kill -9 2>/dev/null"
+# Benchmark 评估
+CUDA_VISIBLE_DEVICES=0 python scripts/eval_benchmark.py \
+  -c checkpoints/p3_ours.pt checkpoints/cap_wiki_100M.pt \
+  --arch 100M \
+  --benchmarks completion dialogue chat \
+  --decoding default creative conservative \
+  -o logs/benchmarks/my_results.json
+
+# 分析结果
+python scripts/analyze_benchmark.py logs/benchmarks/*.json
 ```
 
 ---
 
-## 八、下一步
+## 六、下一步
 
-### 🔴 立即
-1. **检查服务器上 GPU 0/2/7 是否已产出 checkpoint**
-   ```bash
-   ssh school "ls -lt ~/chat-from-scratch/checkpoints/arch_*.pt"
-   ```
-2. **重跑 C200**（100M 基线 × 200M Wiki，bs=4）
-   ```bash
-   CUDA_VISIBLE_DEVICES=4 python scripts/train_single.py -d data/pure_wiki/wiki_200M.jsonl -o checkpoints/cap_wiki_200M.pt -e 2 -b 4 --max_docs 500000
-   ```
+### 🔴 新方向：CommonCrawl 数据工程 Pipeline
 
-### 🟡 后续
-3. 分析架构消融结果（Deep-Thin vs Shallow-Wide vs Extreme Deep vs Extreme Wide vs Mid）
-4. 给 100M 灌更多 Wiki 数据（400M/800M），追踪 PPL 下降曲线
-5. 验证蒸馏+Wiki 混合在更大数据量下是否反超纯蒸馏
-6. 如果确认 Teacher 天花板：换 Qwen2.5-7B 蒸馏或中间层特征蒸馏
+完整方案见 **`docs/cc-pipeline-design.md`**。
+
+#### 阶段 0：中文适配验证（先做，半天）
+- 正文提取器对比（Trafilatura vs jusText vs readability-lxml，200-500 中页）
+- MinHash n-gram 策略对比（字符 5-gram vs jieba 分词 token n-gram）
+- 跨 snapshot 重复率估算
+
+#### 后续阶段
+- 阶段 1：数据获取（3-5 个 snapshot）
+- 阶段 2：WARC → 文本提取 + 语言识别
+- 阶段 3：Gopher 质量过滤（中文适配版）+ 自定义规则 + 截断检测
+- 阶段 4：MinHash 去重 + PII
+- 阶段 5：后处理、Tokenizer 训练、数据配比
+
+#### 对照实验价值
+完成 CC pipeline 后用同一 100M 架构对比：
+- 蒸馏数据（p3_ours，已有）vs CC 手工清洗数据
+- 直接回答"手工数据工程 vs Teacher 蒸馏"的效果差异
+
+### 🟡 可选的后续
+
+- SFT 实验设计（教模型数学/逻辑/安全等当前短板）
+- 在蒸馏数据上重跑架构消融（Wiki 数据的结果作废）
+
+### ❌ 不建议做的
+
+- 继续用 Wiki 做预训练主力数据（已证明对对话无效）
+- 用 Teacher 同族模型做 judge（循环论证）
+- 不经验证直接套用英文数据清洗结论到中文
 
 ---
 
-## 九、文件导航
+## 七、文件导航
 
 | 文档 | 内容 |
 |------|------|
 | `HANDOFF.md` ⭐ | **本文档——新对话第一读** |
-| `STATE.md` | 项目状态摘要 |
-| `docs/experiments-log.md` | 15 次实验完整记录（命令/配置/PPL/生成/分析） |
+| `STATE.md` | 项目状态摘要（部分过时） |
+| `docs/experiments-log.md` | 15 次实验完整记录 |
 | `docs/pretrain-data-best-practices.md` | 17 篇论文调研报告 |
-| `logs/experiments/` | 13 组实验的 raw.log + loss.csv + meta.json |
-| `logs/plots/training_curves.png` | 四宫格训练曲线 |
+| `docs/cc-pipeline-design.md` 🆕 | CommonCrawl 数据清洗 Pipeline 完整方案 |
+| `data/benchmark/` 🆕 | Benchmark prompt（47 题，3 格式） |
+| `logs/experiments/` | 13 组实验 raw.log + loss.csv |
+| `logs/benchmarks/` 🆕 | Benchmark 评估结果 |
 | `debates/` | 辩论结果存档 |
